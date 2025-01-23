@@ -1,6 +1,10 @@
+// Code changed from https://www.youtube.com/watch?v=6qim01M1Yp0
+
 using Godot;
 using Godot.NativeInterop;
 using System;
+using Godot.Collections;
+using System.Linq;
 
 [Tool]
 public partial class Terrain : MeshInstance3D
@@ -67,15 +71,44 @@ public partial class Terrain : MeshInstance3D
 		PlaneMesh plane = new PlaneMesh();
 		plane.SubdivideDepth = _resolution;
 		plane.SubdivideWidth = _resolution;
+		plane.Size = new Vector2(size, size);
 
 		Godot.Collections.Array planeArrays = plane.GetMeshArrays();
 		ArrayMesh arrayMesh = new ArrayMesh();
-		godot_packed_vector3_array vertexArray = planeArrays[ArrayMesh.ArrayType.Vertex];
-		godot_packed_vector3_array normalArray = planeArrays[ArrayMesh.ArrayType.Normal];
-		godot_packed_float32_array tangentArray = planeArrays[ArrayMesh.ArrayType.Tangent];
+		Vector3[] vertexArray = planeArrays[0].As<Vector3[]>();
+		Vector3[] normalArray = planeArrays[1].As<Vector3[]>();
+		float[] tangentArray = planeArrays[2].As<float[]>();
+		GD.Print();
+		GD.Print("old: ", planeArrays[0].As<Vector3[]>()[0]);
+
+		for (int i = 0; i < vertexArray.Length; i++) {
+			Vector3 vertex = vertexArray[i];
+			if (i == 10) {
+				GD.Print("Old vertex y: ", vertex.Y);
+			}
+			Vector3 normal = Vector3.Up;
+			Vector3 tangent = Vector3.Right;
+			if (_noise != null) {
+				vertex.Y = getHeight(vertex.X, vertex.Z);
+				normal = getNormal(vertex.X, vertex.Z);
+				tangent = normal.Cross(Vector3.Up);
+			}
+			if (i == 10) {
+				GD.Print("New vertex y: ", vertex.Y);
+			}
+			vertexArray[i] = vertex;
+			normalArray[i] = normal;
+			tangentArray[4 * i] = tangent.X;
+			tangentArray[4 * i + 1] = tangent.Y;
+			tangentArray[4 * i + 2] = tangent.Z;
+		}
+		
+		planeArrays[0] = vertexArray;
+		planeArrays[1] = normalArray;
+		planeArrays[2] = tangentArray;
+		GD.Print("New2: ", planeArrays[0].As<Vector3[]>()[10]);
 		arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, planeArrays);
 		Mesh = arrayMesh;
-		GD.Print(Mesh._GetAabb().Size);
 	}
 
 	// Called when the node enters the scene tree for the first time.
