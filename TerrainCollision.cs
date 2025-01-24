@@ -6,12 +6,15 @@ using System.Runtime.InteropServices;
 public partial class TerrainCollision : CollisionShape3D
 {
 	[Signal]
-	public delegate void UpdateCollisionEventHandler(Godot.Collections.Array data);
+	public delegate void UpdateCollisionEventHandler(Vector3[] data, float size);
 
+	public TerrainCollision() {
+		UpdateCollision += OnUpdateCollision;
+	}
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
-		UpdateCollision += OnUpdateCollision;
+		
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -19,8 +22,10 @@ public partial class TerrainCollision : CollisionShape3D
 	{
 	}
 
-	private void OnUpdateCollision(Godot.Collections.Array data) {
-		GD.Print("Updating data");
+	private void OnUpdateCollision(Vector3[] data, float size) {
+		ConcavePolygonShape3D newShape = new ConcavePolygonShape3D();
+		newShape.SetFaces(data);
+		Shape = newShape;
 	}
 
 

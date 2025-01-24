@@ -9,7 +9,7 @@ using System.Linq;
 [Tool]
 public partial class Terrain : MeshInstance3D
 {
-	const float size = 256.0f;
+	private float _size = 256.0f;
 
 	private int _resolution = 32;
 
@@ -18,12 +18,24 @@ public partial class Terrain : MeshInstance3D
 	private float _height = 64.0f;
 
 	[Export]
+	public float Size
+	{
+		get => _size;
+		set
+		{
+			_size = value;
+			updateMesh();
+		}
+	}
+
+	[Export]
 	public float Height 
 	{
 		get => _height;
 		set
 		{
 			_height = value;
+			(MaterialOverride as ShaderMaterial).SetShaderParameter("height", _height * 2);
 			updateMesh();
 		}
 	}
@@ -58,11 +70,11 @@ public partial class Terrain : MeshInstance3D
 	}
 
 	private Vector3 getNormal(float x, float y) {
-		float epsilon = size / _resolution;
+		float epsilon = _size / _resolution;
 		Vector3 normal = new Vector3(
-			getHeight(x + epsilon, y) - getHeight(x - epsilon, y) / (2.0f * epsilon),
+			(getHeight(x + epsilon, y) - getHeight(x - epsilon, y)) / (2.0f * epsilon),
 			1.0f,
-			getHeight(x, y + epsilon) - getHeight(x, y - epsilon) / (2.0f * epsilon)
+			(getHeight(x, y + epsilon) - getHeight(x, y - epsilon)) / (2.0f * epsilon)
 			);
 		return normal.Normalized();
 	}
@@ -71,7 +83,7 @@ public partial class Terrain : MeshInstance3D
 		PlaneMesh plane = new PlaneMesh();
 		plane.SubdivideDepth = _resolution;
 		plane.SubdivideWidth = _resolution;
-		plane.Size = new Vector2(size, size);
+		plane.Size = new Vector2(_size, _size);
 
 		Godot.Collections.Array planeArrays = plane.GetMeshArrays();
 		ArrayMesh arrayMesh = new ArrayMesh();
@@ -101,7 +113,7 @@ public partial class Terrain : MeshInstance3D
 
 		arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, planeArrays);
 		Mesh = arrayMesh;
-		GetParent().GetNode<CollisionShape3D>("TerrainCollision").EmitSignal("UpdateCollision", planeArrays);
+		GetParent().GetNode<CollisionShape3D>("TerrainCollision").EmitSignal("UpdateCollision", Mesh.GetFaces(), _size);
 	}
 
 	// Called when the node enters the scene tree for the first time.
