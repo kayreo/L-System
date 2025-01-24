@@ -78,23 +78,15 @@ public partial class Terrain : MeshInstance3D
 		Vector3[] vertexArray = planeArrays[0].As<Vector3[]>();
 		Vector3[] normalArray = planeArrays[1].As<Vector3[]>();
 		float[] tangentArray = planeArrays[2].As<float[]>();
-		GD.Print();
-		GD.Print("old: ", planeArrays[0].As<Vector3[]>()[0]);
 
 		for (int i = 0; i < vertexArray.Length; i++) {
 			Vector3 vertex = vertexArray[i];
-			if (i == 10) {
-				GD.Print("Old vertex y: ", vertex.Y);
-			}
 			Vector3 normal = Vector3.Up;
 			Vector3 tangent = Vector3.Right;
 			if (_noise != null) {
 				vertex.Y = getHeight(vertex.X, vertex.Z);
 				normal = getNormal(vertex.X, vertex.Z);
 				tangent = normal.Cross(Vector3.Up);
-			}
-			if (i == 10) {
-				GD.Print("New vertex y: ", vertex.Y);
 			}
 			vertexArray[i] = vertex;
 			normalArray[i] = normal;
@@ -106,9 +98,10 @@ public partial class Terrain : MeshInstance3D
 		planeArrays[0] = vertexArray;
 		planeArrays[1] = normalArray;
 		planeArrays[2] = tangentArray;
-		GD.Print("New2: ", planeArrays[0].As<Vector3[]>()[10]);
+
 		arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, planeArrays);
 		Mesh = arrayMesh;
+		GetParent().GetNode<CollisionShape3D>("TerrainCollision").EmitSignal("UpdateCollision", planeArrays);
 	}
 
 	// Called when the node enters the scene tree for the first time.
