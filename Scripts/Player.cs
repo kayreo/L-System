@@ -3,7 +3,7 @@ using Godot;
 public partial class Player : CharacterBody3D
 {
 	public const float Speed = 50.0f;
-	public const float JumpVelocity = 4.5f;
+	public const float JumpVelocity = 50.5f;
 
 	public Camera3D cam;
 
@@ -13,21 +13,22 @@ public partial class Player : CharacterBody3D
 
 		cam = GetNode<Camera3D>("Camera3D");
 
-		// Add the gravity.
-		// if (!IsOnFloor())
-		// {
-		// 	velocity += GetGravity() * (float)delta;
-		// }
-
-		// Handle Jump.
-		if (Input.IsActionJustPressed("ui_accept") && IsOnFloor())
+		if (Input.IsActionJustPressed("Ascend"))
 		{
 			velocity.Y = JumpVelocity;
 		}
+		else if (Input.IsActionJustPressed("Descend"))
+		{
+			velocity.Y = -JumpVelocity;
+		}
+		else if (Input.IsActionJustReleased("Ascend") || Input.IsActionJustReleased("Descend")) {
+			velocity.Y = 0;
+		}
+
 
 		// Get the input direction and handle the movement/deceleration.
 		// As good practice, you should replace UI actions with custom gameplay actions.
-		Vector2 inputDir = Input.GetVector("ui_left", "ui_right", "ui_up", "ui_down");
+		Vector2 inputDir = Input.GetVector("Left", "Right", "Up", "Down");
 		Vector3 direction = (Transform.Basis * new Vector3(inputDir.X, 0, inputDir.Y)).Normalized();
 		if (direction != Vector3.Zero)
 		{
