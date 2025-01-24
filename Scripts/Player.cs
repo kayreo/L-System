@@ -7,11 +7,15 @@ public partial class Player : CharacterBody3D
 
 	public Camera3D cam;
 
-	public override void _PhysicsProcess(double delta)
+    public override void _Ready()
+    {
+        base._Ready();
+				cam = GetNode<Camera3D>("Camera3D");
+	}
+
+    public override void _PhysicsProcess(double delta)
 	{
 		Vector3 velocity = Velocity;
-
-		cam = GetNode<Camera3D>("Camera3D");
 
 		if (Input.IsActionJustPressed("Ascend"))
 		{
