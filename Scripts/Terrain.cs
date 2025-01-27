@@ -113,7 +113,14 @@ public partial class Terrain : MeshInstance3D
 
 		arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, planeArrays);
 		Mesh = arrayMesh;
-		GetParent().GetNode<CollisionShape3D>("TerrainCollision").EmitSignal("UpdateCollision", Mesh.GetFaces(), _size);
+		if (GetParent().GetNode<CollisionShape3D>("TerrainCollision") != null) {
+			GetParent().GetNode<CollisionShape3D>("TerrainCollision").EmitSignal("UpdateCollision", Mesh.GetFaces(), _size);
+		}
+		if (GetParent().GetParent().GetNode<MeshInstance3D>("Water") != null) {
+			BoxMesh waterPlane = new BoxMesh();
+			waterPlane.Size = new Vector3(_size, 15, _size);
+			GetParent().GetParent().GetNode<MeshInstance3D>("Water").Mesh = waterPlane;
+		}
 	}
 
 	// Called when the node enters the scene tree for the first time.
