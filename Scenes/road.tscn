@@ -1,0 +1,19 @@
+[gd_scene load_steps=4 format=3 uid="uid://b4jq2j8wk8veh"]
+
+[ext_resource type="Script" path="res://Scripts/Road.cs" id="1_j3spn"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_h0ehq"]
+size = Vector2(10, 50)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8l4fk"]
+
+[node name="Road" type="Node3D"]
+script = ExtResource("1_j3spn")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="."]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D"]
+mesh = SubResource("PlaneMesh_h0ehq")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
+shape = SubResource("BoxShape3D_8l4fk")

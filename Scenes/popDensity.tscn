@@ -1,0 +1,23 @@
+[gd_scene load_steps=4 format=3 uid="uid://p86428lxwsrl"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_i5lvr"]
+radius = 10.0
+height = 20.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_67ccm"]
+albedo_color = Color(1, 0.443137, 1, 1)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_gwyaj"]
+radius = 2.24723
+
+[node name="popDensity" type="Node3D"]
+
+[node name="Area3D" type="Area3D" parent="."]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Area3D"]
+mesh = SubResource("SphereMesh_i5lvr")
+surface_material_override/0 = SubResource("StandardMaterial3D_67ccm")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D"]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0)
+shape = SubResource("SphereShape3D_gwyaj")
