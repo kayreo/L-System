@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.XPath;
 
 [Tool]
 public partial class RoadTest : Node3D
@@ -24,9 +25,9 @@ public partial class RoadTest : Node3D
 
 	public MeshInstance3D Bounds;
 
-	public List<Symbol> axiom = new List<Symbol>{new Symbol("A",1), new Symbol("B", 3), new Symbol("A", 5)};
+	//public List<ISymbol> axiom = new List<ISymbol>{new Symbol("A",1), new Symbol("B", 3), new Symbol("A", 5)};
 
-	public List<ISymbol> generated;
+	public List<ISymbol> generated = new List<ISymbol>{new Symbol("A",1), new Symbol("B", 3), new Symbol("A", 5)};
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
@@ -39,7 +40,10 @@ public partial class RoadTest : Node3D
 		randomizeDests();
 
 		// Generate
-		generate();
+		// Gen 1
+		generate(generated);
+		// Gen 2
+		generate(generated);
 		// Interpret
 		// On interpretation, call query modules
 		interpret();
@@ -47,25 +51,37 @@ public partial class RoadTest : Node3D
 		//addRoad();
 	}
 
-	private void generate() {
+	private List<ISymbol> rewrite(ISymbol sym, int i) {
+		List<ISymbol>result = new List<ISymbol>();
+		foreach (string r in Rules.Keys) {
+			Rule curRule = Rules[r];
+			// Check if symbol matches rule and conditions
+			// Evaluate if a symbol or a branch
+			if (sym is Symbol) {
+				Symbol castedSym = (Symbol) sym;
+				if (curRule.checkSymbol(castedSym) && curRule.checkCond()) {
+					result = curRule.genOutput();
+				}
+			} else if (sym is SymBranch) {
+				SymBranch castedSym = (SymBranch)sym;
+				List<ISymbol> branchResults = new List<ISymbol>();
+				for (int j = 0; j < castedSym.Syms.Count; j++) {
+					branchResults = (rewrite(castedSym.Syms[j], j));
+				}
+				// buggy, need to return a branch
+				return branchResults;
+			}
+		}
+		return result;
+	}
+
+	private void generate(List<ISymbol> axiom) {
 		List<List<ISymbol>> results = new List<List<ISymbol>>();
 
 		// Go through each symbol and evaluate
 		for (int i = 0; i < axiom.Count; i++) {
-			Symbol curSymbol = axiom[i];
-			foreach (string r in Rules.Keys) {
-				Rule curRule = Rules[r];
-				// Check if symbol matches rule and conditions
-				if (curRule.checkSymbol(curSymbol) && curRule.checkCond()) {
-					GD.Print("Using rule");
-					results.Add(curRule.genOutput());
-				}
-			}
-		}
-
-		// Print new rule
-		foreach (List<ISymbol> curLevel in results) {
-			GD.Print("Level: ", String.Join(", ", curLevel));
+			ISymbol curSymbol = axiom[i];
+			results.Add(rewrite(curSymbol, i));
 		}
 
 		// Store flattened
