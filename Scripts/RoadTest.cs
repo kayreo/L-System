@@ -1,5 +1,7 @@
 using Godot;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
@@ -29,12 +31,13 @@ public partial class RoadTest : Node3D
 
 	public String axiom = "A(1)B(3)A(5)";
 
-	private Godot.Collections.Dictionary rules = new Godot.Collections.Dictionary{
-				{"R(x)", "R(x+1)"},
-				//{"R(x)", "W(x-1)"},
-				{" A(x) < B(y) > A(z)", "B(x+z)[A(y)]"}
-			};
+	// Regex for pattern A(x)
+	public Regex reA = new Regex(@"(\p{L})\((\d+)\)");
 
+	// Regex for pattern A(x)B(y)A(z)
+	public Regex reABA = new Regex(@"([\p{L}])\((\d+)\)[^(\1)]\((\d+)\)\1\((\d+)\)");
+
+	private string generatedRules = "";
 
 	/*
 	#define  45 branching angle
@@ -49,38 +52,63 @@ public partial class RoadTest : Node3D
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
-		//axiom = "R(0,initialRuleAttr)?I(initRoadAttr,x)";
-		// Generate
-		//generate();
-
-     	Regex re = new Regex(@"(A+\((\d+)\))|(B+\((\d+)\))");
- 		Match match = re.Match("B(1)");
-		GD.Print("Trying out regex");
-		GD.Print(match.Success);
-
-        // Class Regex Represents an
-        // immutable regular expression.
-        //   Format                Pattern
-        // xxxxxxxxxx           ^[0 - 9]{ 10}$
-        // +xx xx xxxxxxxx     ^\+[0 - 9]{ 2}\s +[0 - 9]{ 2}\s +[0 - 9]{ 8}$
-        // xxx - xxxx - xxxx   ^[0 - 9]{ 3} -[0 - 9]{ 4}-[0 - 9]{ 4}$
-
-		// Interpret
-		// On interpretation, call query modules
-
 		GD.Randomize();
 		RoadList = GetNode<Node3D>("Roads");
 		DestList = GetNode<Node3D>("Destinations");
 		Bounds = GetNode<MeshInstance3D>("Bounds");
+
+		// Generate
+		generate();
+		// Interpret
+		// On interpretation, call query modules
+		
 		//addRoad();
-		randomizeDests();
+		//randomizeDests();
 	}
 
+	/*
+	{ F: FFFF }
+	*/
+
 	private void generate() {
-		char[] axiomToArray = axiom.ToCharArray();
-		for (int i = 0; i < axiomToArray.Length; i++) {
-			char curChar = axiomToArray[i];
+		List<String> result = new List<String>();
+		// Evaluate A patterns first
+		MatchCollection patterns = reA.Matches(axiom);
+		for (int i = 0; i < patterns.Count; i++) {
+			string newPattern = "";
+			Match pattern = patterns[i];
+			GD.Print("On pattern : ", pattern.Value[0]);
+			if (pattern.Value[0] == 'A') {
+			int randomNum = GD.RandRange(0, 100);
+				newPattern = "A(";
+				int sum = 0;
+				GD.Print("On char: ", pattern.Value[2]);
+				if (randomNum <= 40) {
+					sum = pattern.Value[2] - '0' - 1;
+				} else {
+					newPattern = "B(";
+					sum = pattern.Value[2] - '0' - 1;
+				}
+				newPattern += sum.ToString() + ")";
+				GD.Print("New pattern gen: ", newPattern);
+			} else if (pattern.Value[0] == 'B') {
+				// Need to check left and right contexts
+				if (i - 1 >= 0 && i + 1 < patterns.Count) {
+					Match leftPattern = patterns[i - 1];
+					Match rightPattern = patterns[i + 1];
+					GD.Print("My left and rights: ", leftPattern.Value, " ", rightPattern.Value);
+					int y = pattern.Value[2] - '0';
+					if (y < 4) {
+						GD.Print("less than y");
+						int xz = leftPattern.Value[2] - '0' + rightPattern.Value[2] - '0';
+						newPattern = "B(" + xz + ")[A(" + y + ")]";
+					}
+				}
+			}
+			GD.Print("New pattern is: ", newPattern);
+			result.Add(newPattern);
 		}
+		GD.Print("Processed: ", string.Join("", result));
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
