@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography.X509Certificates;
 
 // Rules to generate new string
 public abstract class Rule {
@@ -88,5 +89,56 @@ class RuleB : Rule {
 		container.Syms.Add(new Symbol("A", vars['y']));
 		results.Add(container);
 		return results;
+    }
+}
+
+class RuleI : Rule {
+    private String mySymbol = "?I";
+	private Dictionary<char, int> vars = new Dictionary<char, int>{
+		{'x', -1},
+		{'y', -1},
+		{'z', -1}
+	};
+
+
+    public override bool checkSymbol(Symbol symbol)
+    {
+        throw new NotImplementedException();
+    
+    }
+
+    public override bool checkCond()
+    {
+        throw new NotImplementedException();
+    }
+
+    public override List<ISymbol> genOutput() {
+        List<ISymbol> result = new List<ISymbol>();
+
+
+        return result;
+    }
+}
+
+
+class RuleR : Rule {
+    private String mySymbol = "R";
+    
+    public override bool checkSymbol(Symbol symbol)
+    {
+        throw new NotImplementedException();
+    
+    }
+
+    public override bool checkCond()
+    {
+        throw new NotImplementedException();
+    }
+
+    public override List<ISymbol> genOutput() {
+        List<ISymbol> result = new List<ISymbol>();
+
+
+        return result;
     }
 }

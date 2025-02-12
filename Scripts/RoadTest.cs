@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Xml.XPath;
+using System.Runtime.Intrinsics.X86;
 
 [Tool]
 public partial class RoadTest : Node3D
@@ -24,6 +24,8 @@ public partial class RoadTest : Node3D
 	public Node3D DestList;
 
 	public MeshInstance3D Bounds;
+
+	public Vector3 CurPos = Vector3.Zero;
 
 	//public List<ISymbol> axiom = new List<ISymbol>{new Symbol("A",1), new Symbol("B", 3), new Symbol("A", 5)};
 
@@ -105,7 +107,7 @@ public partial class RoadTest : Node3D
 				GD.Print("ID: ", castedSym.ID);
 				if (castedSym.ID == "B") {
 					GD.Print("Add a road");
-					addRoad();
+					addRoad(CurPos);
 				}
 				else if (castedSym.ID == "A") {
 					GD.Print("Query");
@@ -116,6 +118,29 @@ public partial class RoadTest : Node3D
 				GD.Print("Branch: ", castedSym);
 			}
 		}
+	}
+
+	private float getClosestDestAngle(Road road) {
+		Node3D firstChild = (Node3D)DestList.GetChild(0);
+		Vector3 shortestDist = road.Position - firstChild.Position;
+		Vector3 dir = (firstChild.Position - road.Position).Normalized();
+		float yaw = Mathf.Atan2(dir.X, dir.Z);
+		Node3D closestChild = (Node3D)DestList.GetChild(0);
+		// Find closest destination to road
+		for (int d = 1; d < DestList.GetChildren().Count; d++) {
+			Node3D curChild = (Node3D)DestList.GetChild(d);
+			Vector3 curDist = road.Position - curChild.Position;
+			if (curDist < shortestDist) {
+				dir = (curChild.Position - road.Position).Normalized();
+				yaw = Mathf.Atan2(dir.X, dir.Z);
+				GD.Print("Closest child is: ", d);
+				GD.Print("Rotating: ", yaw);
+				closestChild = curChild;
+			}
+		}
+		//road.Rotate(Vector3.Up, yaw);
+		//road.LookAtFromPosition(road.Position, closestChild.Position);
+		return yaw;
 	}
 
 	private void insertQuery() {
@@ -139,9 +164,23 @@ public partial class RoadTest : Node3D
 		}
 	}
 
-	private void addRoad() {
+	private void addRoad(Vector3 pos) {
+		// Create new road and set position
 		Road newRoad = (Road)Road.Instantiate();
+		newRoad.Translate(pos);
+
+		// TODO: make new angled version for add road
+		// If branching, apply angle
+		float angle = getClosestDestAngle(newRoad);
+		newRoad.Rotate(Vector3.Up, angle);
+
+
+		//newRoad.Rotate(Vector3.Up, angle);
 		RoadList.AddChild(newRoad);
+
+
+		// Increment position to next position
+		CurPos = new Vector3(0, 0, pos.Z + newRoad.MyMesh.GetAabb().Size.Z);
 	}
 
 	private void addDest(Vector3 pos) {
