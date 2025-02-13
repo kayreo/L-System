@@ -85,8 +85,10 @@ class RuleB : Rule {
 		List<ISymbol> results = new List<ISymbol>();
 		SymBranch container = new SymBranch();
 		int sum = vars['x'] + vars['z'];
-		results.Add(new Symbol("B", sum));
+		//results.Add(new Symbol("B", sum));
 		container.Syms.Add(new Symbol("A", vars['y']));
+        container.Syms.Add(new Symbol("C", vars['y']));
+        container.Syms.Add(new Symbol("B", vars['y']));
 		results.Add(container);
 		return results;
     }
