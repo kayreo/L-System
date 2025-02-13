@@ -9,7 +9,8 @@ public partial class RoadTest : Node3D
 	public Dictionary<String, Rule> Rules = new Dictionary<String, Rule>
 	{
 		{"RuleA", new RuleA()},
-		{"RuleB", new RuleB()}
+		{"RuleB", new RuleB()},
+		{"RuleI", new RuleI()}
 	};
 
 	[Export]
@@ -28,11 +29,17 @@ public partial class RoadTest : Node3D
 
 	public Stack<Vector3> PushedPos = new Stack<Vector3>();
 
+	public Stack<float> PushedAng = new Stack<float>();
+
 	public Vector3 CurDir = Vector3.Forward;
+
+	public float CurAngle = 0.0f;
 
 	//public List<ISymbol> axiom = new List<ISymbol>{new Symbol("A",1), new Symbol("B", 3), new Symbol("A", 5)};
 
-	public List<ISymbol> generated = new List<ISymbol>{new Symbol("A", 1), new Symbol("B", 3), new Symbol("A", 5)};
+	// begin with a basic road symbol and an insertion query to determine if legal place to put road
+	public List<ISymbol> generated = new List<ISymbol>{new Symbol("R", 0, new Dictionary<Variant, Variant>{{"del", 0}, {"ruleAttr", 0}}), new Symbol("?I", 0, new Dictionary<Variant, Variant>{{"ruleAttr", 0}, {"state", 0}})};
+	//new List<ISymbol>{new Symbol("A", new Dictionary<Variant, Variant>(1)), new Symbol("B", new Dictionary<Variant, Variant>(3)), new Symbol("A", new Dictionary<Variant, Variant>(5))};
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
@@ -46,25 +53,23 @@ public partial class RoadTest : Node3D
 		GD.Randomize();
 		randomizeDests();
 
-		/*
-		// Generate
-		// Gen 1
+		
+		// Generate ideal successor
 		generate(generated);
-		// Gen 2
-		generate(generated);
-		// Interpret
-		// On interpretation, call query modules
-		interpret(generated);
-		*/
 
-		// Testing road functions
-		// Add a few forward roads
-		for (int i = 0; i < 3; i++) {
-			addRoad();
-		}
-		// Branch from last road
-		branchRoad();
-		addRoad();
+		// Global goals generation
+		// First fill symbol vals using global goals, where you call queries to update your goals
+		globalGoals(generated);
+
+		// local constraints generation
+		// Next rewrite calls local constraints, which culls or rewrites rules based on queries made in global goals
+		localConstraints(generated);
+		
+		// Interpret
+		// finally, interpret rule and build road!
+		interpret(generated);
+		
+
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -136,6 +141,8 @@ public partial class RoadTest : Node3D
 						break;
 					// Insertion query
 					case "?I":
+						// in global goals, make a query
+						// based on result of the query, update your rule
 						GD.Print("Query");
 						break;
 				}
@@ -143,9 +150,11 @@ public partial class RoadTest : Node3D
 			// Branch and save position
 			else if (sym is SymBranch) {
 				SymBranch castedSym = (SymBranch)sym;
+				branchRoad();
 				GD.Print("Branch: ", castedSym);
 				// Save position
 				PushedPos.Push(CurPos);
+				PushedAng.Push(CurAngle);
 				// Interpret symbols in this branch
 				interpret(castedSym.Syms);
 				// Pop back to position
@@ -154,39 +163,44 @@ public partial class RoadTest : Node3D
 		}
 	}
 
-	private void globalGoals() {
+	// have roads trend toward different "goals"
+	// maybe add some randomization??
+	private void globalGoals(List<ISymbol> axiom) {
 
 	}
 
-	private void localConstraints() {
+	private void localConstraints(List<ISymbol> axiom) {
 
 	}
 
+	/* --------------------------- 
+	-------- Query Funcs ---------
+	------------------------------ */
+	
+	// Queries whether the road can be inserted
+	// checks for legal terrain, or if road will intersect with water, mountains, etc.
+	private bool insertQuery() {
+		return true;
+	}
+
+	// TODO: branches much have a minimum angle difference (ie, road branches must be 45 degrees apart)
 	// Closest destination query, returns yaw needed to face thingy
 	// Does NOT do any rotating on its own
 	private float getClosestDestAngle(Road road) {
 		Node3D firstChild = (Node3D)DestList.GetChild(0);
 		Vector3 shortestDist = road.Position - firstChild.Position;
 		Vector3 dir = (firstChild.Position - road.Position).Normalized();
-		float yaw = Mathf.Atan2(dir.X, dir.Z);
-		Node3D closestChild = (Node3D)DestList.GetChild(0);
+		float yaw = road.Position.AngleTo(dir);
 		// Find closest destination to road
 		for (int d = 1; d < DestList.GetChildren().Count; d++) {
 			Node3D curChild = (Node3D)DestList.GetChild(d);
 			Vector3 curDist = road.Position - curChild.Position;
 			if (curDist < shortestDist) {
 				dir = (curChild.Position - road.Position).Normalized();
-				yaw = Mathf.Atan2(dir.X, dir.Z);
-				GD.Print("Closest child is: ", d);
-				GD.Print("Rotating: ", yaw);
-				closestChild = curChild;
+				yaw = road.Position.AngleTo(dir);
 			}
 		}
 		return yaw;
-	}
-
-	private void insertQuery() {
-		
 	}
 
 	/* --------------------------- 
@@ -196,16 +210,15 @@ public partial class RoadTest : Node3D
 	// Draw a road forward
 	private void addRoad() {
 		GD.Print("Adding road forward");
+
 		// Create new road and set position
 		Road newRoad = (Road)Road.Instantiate();
 		newRoad.Translate(CurPos);
-
-		//newRoad.Rotate(Vector3.Up, angle);
+		newRoad.Rotate(Vector3.Up, CurAngle);
 		RoadList.AddChild(newRoad);
-		GD.Print("My forward dir: ", CurDir);
-		GD.Print("My forward pos: ", CurPos);
+
 		// Increment position to next position
-		CurPos = CurPos + (newRoad.MyMesh.GetAabb().Size * CurDir);
+		CurPos += new Vector3(50, 0, 50) * CurDir;
 	}
 	
 	// Branch a road
@@ -215,21 +228,17 @@ public partial class RoadTest : Node3D
 		Road newRoad = (Road)Road.Instantiate();
 		newRoad.Translate(CurPos);
 
-		// TODO: make new angled version for add road
 		// If branching, apply angle
-		float angle = getClosestDestAngle(newRoad);
-		newRoad.Rotate(Vector3.Up, angle);
+		CurAngle = getClosestDestAngle(newRoad);
+		newRoad.Rotate(Vector3.Up, CurAngle);
 
-		CurDir = CurDir.Rotated(Vector3.Up, angle);
-		GD.Print("My branching dir: ", CurDir);
-		GD.Print("My branching pos: ", CurPos);
-
+		CurDir = CurDir.Rotated(Vector3.Up, CurAngle).Normalized();
 
 		//newRoad.Rotate(Vector3.Up, angle);
 		RoadList.AddChild(newRoad);
 
 		// Increment position to next position
-		CurPos = CurPos + (newRoad.MyMesh.GetAabb().Size * CurDir);
+		CurPos += new Vector3(50, 0, 50) * CurDir;
 	}
 
 
@@ -238,7 +247,7 @@ public partial class RoadTest : Node3D
 	------------------------------ */
 	private void randomizeDests() {
 		Vector3 boundsSize = Bounds.GetAabb().Size;
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 3; i++) {
 			Vector3 placePos = new Vector3(GD.RandRange((int)-boundsSize.X/3, (int)boundsSize.X/3), 0, GD.RandRange((int)-boundsSize.Z/3, (int)boundsSize.Z/3));
 			addDest(placePos);
 		}
