@@ -113,6 +113,11 @@ public partial class Terrain : MeshInstance3D
 
 		arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, planeArrays);
 		Mesh = arrayMesh;
+	}
+
+	// Called when the node enters the scene tree for the first time.
+	public override void _Ready()
+	{
 		if (GetParent().GetNode<CollisionShape3D>("TerrainCollision") != null) {
 			GetParent().GetNode<CollisionShape3D>("TerrainCollision").EmitSignal("UpdateCollision", Mesh.GetFaces(), _size);
 		}
@@ -121,11 +126,6 @@ public partial class Terrain : MeshInstance3D
 			waterPlane.Size = new Vector3(_size, 15, _size);
 			GetParent().GetParent().GetNode<MeshInstance3D>("Water").Mesh = waterPlane;
 		}
-	}
-
-	// Called when the node enters the scene tree for the first time.
-	public override void _Ready()
-	{
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.

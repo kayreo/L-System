@@ -10,6 +10,9 @@ public partial class RoadTest : Node3D
 	{
 		{"RuleRBranch", new RuleRBranch()},
 		{"RuleRDel", new RuleRDel()},
+		{"RuleB", new RuleB()},
+		{"RuleBDel", new RuleBDel()},
+		{"RuleI", new RuleI()},
 		{"RuleIDel", new RuleIDel()}
 	};
 
@@ -35,11 +38,8 @@ public partial class RoadTest : Node3D
 
 	public float CurAngle = 0.0f;
 
-	//public List<ISymbol> axiom = new List<ISymbol>{new Symbol("A",1), new Symbol("B", 3), new Symbol("A", 5)};
-
 	// begin with a basic road symbol and an insertion query to determine if legal place to put road
 	public List<ISymbol> generated = new List<ISymbol>{new Symbol("R", 0, 0, -1, StateType.UNASSIGNED), new Symbol("?I", 0, 0, 0, StateType.UNASSIGNED)};
-	//new List<ISymbol>{new Symbol("A", new Dictionary<Variant, Variant>(1)), new Symbol("B", new Dictionary<Variant, Variant>(3)), new Symbol("A", new Dictionary<Variant, Variant>(5))};
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
@@ -54,9 +54,6 @@ public partial class RoadTest : Node3D
 		randomizeDests();
 
 		
-		// Generate ideal successor
-		generate(generated);
-
 		// Global goals generation
 		// First fill symbol vals using global goals, where you call queries to update your goals
 		globalGoals(generated);
@@ -64,12 +61,13 @@ public partial class RoadTest : Node3D
 		// local constraints generation
 		// Next rewrite calls local constraints, which culls or rewrites rules based on queries made in global goals
 		localConstraints(generated);
-		
+
+		// Generate ideal successor for next iteration
+		generate(generated);
+
 		// Interpret
 		// finally, interpret rule and build road!
 		interpret(generated);
-		
-
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -93,7 +91,7 @@ public partial class RoadTest : Node3D
 
 		// Store flattened
 		generated = results.SelectMany(subList => subList).ToList();
-		GD.Print("Flattened: ", String.Join("", generated));
+		GD.Print("Flattened: ", string.Join("", generated));
 	}
 
 	// Rewrites the given symbol based on its corresponding rule
@@ -152,9 +150,13 @@ public partial class RoadTest : Node3D
 				GD.Print("ID: ", castedSym.ID);
 				switch (castedSym.ID) {
 					// Create a road
-					case "B":
+					case "R":
 						GD.Print("Add a road");
 						addRoad();
+						break;
+					case "B":
+						GD.Print("Branch road");
+						branchRoad();
 						break;
 					// Insertion query
 					case "?I":
@@ -185,12 +187,45 @@ public partial class RoadTest : Node3D
 	// which returns an array of attributes (pDel[0-2] for branch delay
 	// and deletion, pRuleAttr[0-2] for rule-specific attributes and
 	// pRoadAttr[0-2] for road data, e.g. length, angle, etc).
+
+	// TODO: where do i call thisssssss how do i update symbol params
+	// can i put this in the rule for branch gen
+	// I do not think i understand this
 	private void globalGoals(List<ISymbol> axiom) {
+		// Branch delay and deletion
+		List<int> pDel = new List<int>{
+			0, 0, 0
+		};
+
+		// Rule-specific attributes
+		List<int> pRuleAttr = new List<int>{
+			0, 0, 0
+		};
+
+		// Road data (length, angle)
+		List<float> pRoadAttr = new List<float>{
+			50f, getClosestDestAngle(CurPos), 0f
+		};
 
 	}
 
+	// TODO: need to add state changing and param adjustment based on goals
+	// For now, just set everything to true
 	private void localConstraints(List<ISymbol> axiom) {
-
+		for (int i = 0; i < axiom.Count; i++) {
+			if (axiom[i] is Symbol) {
+				Symbol castedSym = (Symbol)axiom[i];
+				if (castedSym.ID == "?I") {
+					castedSym.State = StateType.SUCCESS;
+				}
+				axiom[i] = castedSym;
+			} else if (axiom[i] is SymBranch) {
+				// If branch, recursively update symbols in branch
+				SymBranch castedBranch = (SymBranch)axiom[i];
+				localConstraints(castedBranch.Syms);
+			}
+		}
+		GD.Print("New axiom: ", string.Join("", axiom));
 	}
 
 	/* --------------------------- 
@@ -206,18 +241,18 @@ public partial class RoadTest : Node3D
 	// TODO: branches much have a minimum angle difference (ie, road branches must be 45 degrees apart)
 	// Closest destination query, returns yaw needed to face thingy
 	// Does NOT do any rotating on its own
-	private float getClosestDestAngle(Road road) {
+	private float getClosestDestAngle(Vector3 pos) {
 		Node3D firstChild = (Node3D)DestList.GetChild(0);
-		Vector3 shortestDist = road.Position - firstChild.Position;
-		Vector3 dir = (firstChild.Position - road.Position).Normalized();
-		float yaw = road.Position.AngleTo(dir);
+		Vector3 shortestDist = pos - firstChild.Position;
+		Vector3 dir = (firstChild.Position - pos).Normalized();
+		float yaw = pos.AngleTo(dir);
 		// Find closest destination to road
 		for (int d = 1; d < DestList.GetChildren().Count; d++) {
 			Node3D curChild = (Node3D)DestList.GetChild(d);
-			Vector3 curDist = road.Position - curChild.Position;
+			Vector3 curDist = pos - curChild.Position;
 			if (curDist < shortestDist) {
-				dir = (curChild.Position - road.Position).Normalized();
-				yaw = road.Position.AngleTo(dir);
+				dir = (curChild.Position - pos).Normalized();
+				yaw = pos.AngleTo(dir);
 			}
 		}
 		return yaw;
@@ -249,7 +284,7 @@ public partial class RoadTest : Node3D
 		newRoad.Translate(CurPos);
 
 		// If branching, apply angle
-		CurAngle = getClosestDestAngle(newRoad);
+		CurAngle = getClosestDestAngle(CurPos);
 		newRoad.Rotate(Vector3.Up, CurAngle);
 
 		CurDir = CurDir.Rotated(Vector3.Up, CurAngle).Normalized();

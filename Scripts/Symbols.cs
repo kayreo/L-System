@@ -35,7 +35,7 @@ public struct Symbol : ISymbol
 
 	public StateType State { get; set; }
 
-    public override string ToString() => $"{ID}({Del}, {RuleAttr}, {RoadAttr})";
+    public override string ToString() => $"{ID}({Del}, {RuleAttr}, {RoadAttr}, {State})";
 }
 
 // Used for brackets, like in [A(x)]
