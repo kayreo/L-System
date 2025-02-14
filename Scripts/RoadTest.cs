@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-[Tool]
 public partial class RoadTest : Node3D
 {
 	public Dictionary<String, Rule> Rules = new Dictionary<String, Rule>
@@ -53,21 +52,31 @@ public partial class RoadTest : Node3D
 		GD.Randomize();
 		randomizeDests();
 
-		
-		// Global goals generation
-		// First fill symbol vals using global goals, where you call queries to update your goals
-		globalGoals(generated);
+		addRoad();
 
-		// local constraints generation
-		// Next rewrite calls local constraints, which culls or rewrites rules based on queries made in global goals
-		localConstraints(generated);
+		branchRoad();
 
-		// Generate ideal successor for next iteration
-		generate(generated);
+		addRoad();
 
-		// Interpret
-		// finally, interpret rule and build road!
-		interpret(generated);
+		branchRoad();
+
+
+		//for (int i = 0; i < 3; i++) {
+		// 	// Global goals generation
+		// 	// First fill symbol vals using global goals, where you call queries to update your goals
+		// 	globalGoals(generated);
+
+		// 	// local constraints generation
+		// 	// Next rewrite calls local constraints, which culls or rewrites rules based on queries made in global goals
+		// 	localConstraints(generated);
+		// 	GD.Print("Local Constraints: ", string.Join(", ", generated));
+
+		// 	// Generate ideal successor for next iteration
+		// 	generate(generated);
+		// }
+		// // Interpret
+		// // finally, interpret rule and build road!
+		// interpret(generated);
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -86,16 +95,19 @@ public partial class RoadTest : Node3D
 		// Go through each symbol and evaluate
 		for (int i = 0; i < axiom.Count; i++) {
 			ISymbol curSymbol = axiom[i];
-			results.Add(rewrite(curSymbol, i));
+			List<ISymbol> rewroteSym = rewrite(axiom, curSymbol, i);
+			if (rewroteSym!= null) {
+				results.Add(rewroteSym);
+			}
 		}
 
 		// Store flattened
 		generated = results.SelectMany(subList => subList).ToList();
-		GD.Print("Flattened: ", string.Join("", generated));
+		GD.Print("Generated: ", string.Join("", generated));
 	}
 
 	// Rewrites the given symbol based on its corresponding rule
-	private List<ISymbol> rewrite(ISymbol sym, int i) {
+	private List<ISymbol> rewrite(List<ISymbol> axiom, ISymbol sym, int i) {
 		List<ISymbol>result = new List<ISymbol>();
 		foreach (string r in Rules.Keys) {
 			Rule curRule = Rules[r];
@@ -106,16 +118,16 @@ public partial class RoadTest : Node3D
 
 				// Check LC and RC
 				// Check if an R symbol has an ?I query to its right
-				if (castedSym.ID == "R" && generated[i + 1] is Symbol) {
-					Symbol genCast = (Symbol)generated[i + 1];
+				if (castedSym.ID == "R" && axiom[i + 1] is Symbol) {
+					Symbol genCast = (Symbol)axiom[i + 1];
 					if (genCast.ID == "?I") {
 						// Pass inquery's state to road to check
 						castedSym.State = genCast.State;
 					}
 				}
 				// Check if an ?I query has an R symbol to the left
-				else if (castedSym.ID == "?I" && generated[i - 1] is Symbol) {
-					Symbol genCast = (Symbol)generated[i - 1];
+				else if (castedSym.ID == "?I" && axiom[i - 1] is Symbol) {
+					Symbol genCast = (Symbol)axiom[i - 1];
 					if (genCast.ID == "R") {
 					}
 				}
@@ -127,12 +139,16 @@ public partial class RoadTest : Node3D
 				SymBranch newBranch = new SymBranch();					// Resulting branch
 				List<ISymbol> branchResults;							// Store rewritten symbols here
 				for (int j = 0; j < castedSym.Syms.Count; j++) {		// Recurisvely rewrite syms in branch
-					branchResults = rewrite(castedSym.Syms[j], j);
-					foreach (ISymbol genSym in branchResults) {			// Add to resulting branch's syms
-						newBranch.Syms.Add(genSym);
+					branchResults = rewrite(castedSym.Syms, castedSym.Syms[j], j);
+					if (branchResults != null) {
+						foreach (ISymbol genSym in branchResults) {		// Add to resulting branch's syms
+							newBranch.Syms.Add(genSym);
+						}
 					}
 				}
-				result.Add(newBranch);
+				if (newBranch.Syms.Count > 0) {
+					result.Add(newBranch);
+				}
 				return result;
 			}
 		}
@@ -147,22 +163,22 @@ public partial class RoadTest : Node3D
 			//GD.Print("Interpreting: ", sym);
 			if (sym is Symbol) {
 				Symbol castedSym = (Symbol)sym;
-				GD.Print("ID: ", castedSym.ID);
+				//GD.Print("ID: ", castedSym.ID);
 				switch (castedSym.ID) {
 					// Create a road
 					case "R":
-						GD.Print("Add a road");
+						//GD.Print("Add a road");
 						addRoad();
 						break;
 					case "B":
-						GD.Print("Branch road");
+						//GD.Print("Branch road");
 						branchRoad();
 						break;
 					// Insertion query
 					case "?I":
 						// in global goals, make a query
 						// based on result of the query, update your rule
-						GD.Print("Query");
+						//GD.Print("Query");
 						break;
 				}
 			}
@@ -170,14 +186,14 @@ public partial class RoadTest : Node3D
 			else if (sym is SymBranch) {
 				SymBranch castedSym = (SymBranch)sym;
 				branchRoad();
-				GD.Print("Branch: ", castedSym);
 				// Save position
 				PushedPos.Push(CurPos);
 				PushedAng.Push(CurAngle);
 				// Interpret symbols in this branch
 				interpret(castedSym.Syms);
-				// Pop back to position
+				// Pop back to position and angle
 				CurPos = PushedPos.Pop();
+				CurAngle = PushedAng.Pop();
 			}
 		}
 	}
@@ -225,7 +241,6 @@ public partial class RoadTest : Node3D
 				localConstraints(castedBranch.Syms);
 			}
 		}
-		GD.Print("New axiom: ", string.Join("", axiom));
 	}
 
 	/* --------------------------- 
@@ -242,20 +257,27 @@ public partial class RoadTest : Node3D
 	// Closest destination query, returns yaw needed to face thingy
 	// Does NOT do any rotating on its own
 	private float getClosestDestAngle(Vector3 pos) {
+		GD.Print("Checking position: ", pos);
+		GD.Print("Current direction: ", CurDir);
+
 		Node3D firstChild = (Node3D)DestList.GetChild(0);
-		Vector3 shortestDist = pos - firstChild.Position;
-		Vector3 dir = (firstChild.Position - pos).Normalized();
-		float yaw = pos.AngleTo(dir);
+		float shortestDist = pos.DistanceTo(firstChild.Position);
+		GD.Print("dest pos: ", firstChild.Position);
+		float angle = CurDir.SignedAngleTo(firstChild.Position, Vector3.Up);
+		GD.Print("init angle: ", angle);
+		
 		// Find closest destination to road
 		for (int d = 1; d < DestList.GetChildren().Count; d++) {
 			Node3D curChild = (Node3D)DestList.GetChild(d);
-			Vector3 curDist = pos - curChild.Position;
+			float curDist = pos.DistanceTo(curChild.Position);
 			if (curDist < shortestDist) {
-				dir = (curChild.Position - pos).Normalized();
-				yaw = pos.AngleTo(dir);
+				GD.Print("Getting closest : ", d);
+				angle = CurDir.SignedAngleTo(curChild.Position, Vector3.Up);
+				GD.Print("closest angle: ", angle);
+				shortestDist = curDist;
 			}
 		}
-		return yaw;
+		return angle;
 	}
 
 	/* --------------------------- 
@@ -264,8 +286,6 @@ public partial class RoadTest : Node3D
 
 	// Draw a road forward
 	private void addRoad() {
-		GD.Print("Adding road forward");
-
 		// Create new road and set position
 		Road newRoad = (Road)Road.Instantiate();
 		newRoad.Translate(CurPos);
@@ -278,13 +298,13 @@ public partial class RoadTest : Node3D
 	
 	// Branch a road
 	private void branchRoad() {
-		GD.Print("Branching road");
 		// Create new road and set position
 		Road newRoad = (Road)Road.Instantiate();
 		newRoad.Translate(CurPos);
 
 		// If branching, apply angle
 		CurAngle = getClosestDestAngle(CurPos);
+		GD.Print("Angle: ", CurAngle);
 		newRoad.Rotate(Vector3.Up, CurAngle);
 
 		CurDir = CurDir.Rotated(Vector3.Up, CurAngle).Normalized();

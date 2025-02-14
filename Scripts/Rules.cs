@@ -56,7 +56,6 @@ class RuleRBranch : Rule {
     }
 
     public override List<ISymbol> genOutput() {
-        GD.Print("Generating branch");
         //Two branch modules, B and a road module R plus the insertion query ?I are created.
         List<ISymbol> result = new List<ISymbol>{
             new Symbol("B", 0, 0, 0, StateType.UNASSIGNED),       // Branch 1
@@ -99,10 +98,7 @@ class RuleRDel : Rule {
     }
 
     public override List<ISymbol> genOutput() {
-        List<ISymbol> result = new List<ISymbol>();
-        Symbol delSym = new Symbol("D", -1, -1, -1, StateType.UNASSIGNED);
-        result.Add(delSym);
-        return result;
+        return null;
     }
 }
 
@@ -177,15 +173,11 @@ class RuleBDel : Rule {
 
     public override bool checkCond()
     {
-        // Check del flag and if inquery module state is set to failed
         return vars["del"] < 0;
     }
 
     public override List<ISymbol> genOutput() {
-        List<ISymbol> result = new List<ISymbol>();
-        Symbol delSym = new Symbol("D", -1, -1, -1, StateType.UNASSIGNED);
-        result.Add(delSym);
-        return result;
+        return null;
     }
 }
 
@@ -250,9 +242,6 @@ class RuleIDel : Rule {
     }
 
     public override List<ISymbol> genOutput() {
-        List<ISymbol> result = new List<ISymbol>();
-        Symbol delSym = new Symbol("D", -1, -1, -1, StateType.UNASSIGNED);
-        result.Add(delSym);
-        return result;
+        return null;
     }
 }
