@@ -1,64 +1,41 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Data;
 
+
+public enum StateType {
+	UNASSIGNED,
+	SUCCESS,
+	FAILURE
+}
 
 // Generic symbol type to account for reg symbols and symbol containers
 public interface ISymbol {
 };
 
-// Used for letters like A(X)
+// Symbol used in road gen
 public struct Symbol : ISymbol
 {
-    public Symbol(String id, int val, Dictionary<Variant, Variant> vals)
-    {
-		ID = id; // ID
-        Val = val; // Module
-		Values = vals;
-    }
-
-    public int Val { get; }
-
-	public Dictionary<Variant, Variant> Values;
-
-	public String ID { get; }
-
-    public override string ToString() => $"{ID}({Val})";
-}
-
-// Road symbol
-public struct RSymbol : ISymbol
-{
-    public RSymbol(String id, int delay, int ruleAttribute)
+    public Symbol(String id, int delay, int ruleAttribute, int roadAttribute, StateType state)
     {
 		ID = id; // ID
         Del = delay;
 		RuleAttr = ruleAttribute;
+		RoadAttr = roadAttribute;
+		State = StateType.UNASSIGNED;
     }
-
-    public int Del { get; }
-
-	public int RuleAttr { get; }
-
 	public String ID { get; }
 
-    public override string ToString() => $"{ID}({Del}, {RuleAttr})";
-}
+    public int Del { get; set; }
 
-// Inquery symbol
-public struct IQuerySymbol : ISymbol
-{
-    public IQuerySymbol(String id, Dictionary<Variant, Variant> val)
-    {
-		ID = id; // ID
-        Val = val; // Module
-    }
+	public int RuleAttr { get; set; }
 
-    public Dictionary<Variant, Variant> Val { get; }
+	public int RoadAttr { get; set; }
 
-	public String ID { get; }
+	public StateType State { get; set; }
 
-    public override string ToString() => $"{ID}({Val})";
+    public override string ToString() => $"{ID}({Del}, {RuleAttr}, {RoadAttr})";
 }
 
 // Used for brackets, like in [A(x)]

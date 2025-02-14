@@ -15,131 +15,35 @@ public abstract class Rule {
 	public abstract List<ISymbol> genOutput();
 };
 
+/* --------------------------- 
+---------- R Rules -----------
+------------------------------ */
+// If true, branch this road
+/* p2: R(del, ruleAttr) > ?I(roadAttr,state) : state==SUCCEED
+{globalGoals(ruleAttr,roadAttr) creates the parameters
+    for: pDel[0-2], pRuleAttr[0-2], pRoadAttr[0-2]}
+        → +(roadAttr.angle)F(roadAttr.length)
+        B(pDel[1],pRuleAttr[1],pRoadAttr[1]),
+        B(pDel[2],pRuleAttr[2],pRoadAttr[2]),
+        R(pDel[0],pRuleAttr[0]) ?I(pRoadAttr[0],UNASSIGNED)
+}*/
 
-// Generates rules when A(x) symbol is found
-// A(x) -> A(x + 1) : 0.4 chance
-// A(x) -> B(x - 1) : 0.6 chance
-class RuleA : Rule {
-	private String mySymbol = "A";
-
-	private Dictionary<char, int> vars = new Dictionary<char, int>{
-		{'x', -1}
-	};
-	
-	public override bool checkSymbol(Symbol sym) {
-        // Update vars if using this rule
-        if (sym.ID == mySymbol) {
-		    vars['x'] = 1;
-            return true;
-        }
-		return false;
-	}
-
-    public override bool checkCond()
-    {
-        return true;
-    }
-
-    public override List<ISymbol> genOutput()
-    {
-		float prob = GD.Randf();
-		if (prob <= 0.4) {
-        	return new List<ISymbol>{new Symbol(mySymbol, vars['x'] + 1, null)};
-		}
-		else {
-			return new List<ISymbol>{new Symbol("B", vars['x'] - 1, null)};
-		}
-    }
-}
-
-// Generates rules when B(x) symbol is found
-// A(x) < B(y) > A(z) : y < 4 -> B(x+z)[A(y)]
-// TODO: left and right context eval
-class RuleB : Rule {
-	private String mySymbol = "B";
-
-	private Dictionary<char, int> vars = new Dictionary<char, int>{
-		{'x', -1},
-		{'y', -1},
-		{'z', -1}
-	};
-	
-	public override bool checkSymbol(Symbol sym) {
-        // Update vars if using this rule
-        if (sym.ID == mySymbol) {
-            vars['x'] = 2;
-            vars['y'] = 3;
-            vars['z'] = 1;
-            return true;
-        }
-		return false;
-	}
-
-    public override bool checkCond()
-    {
-        return true;
-    }
-
-    public override List<ISymbol> genOutput()
-    {
-		List<ISymbol> results = new List<ISymbol>();
-		SymBranch container = new SymBranch();
-		int sum = vars['x'] + vars['z'];
-		//results.Add(new Symbol("B", sum));
-		container.Syms.Add(new Symbol("A", vars['y'], null));
-        container.Syms.Add(new Symbol("C", vars['y'], null));
-        container.Syms.Add(new Symbol("B", vars['y'], null));
-		results.Add(container);
-		return results;
-    }
-}
-
-// Insertion query rule
-class RuleI : Rule {
-    private String mySymbol = "?I";
-	private Dictionary<char, int> vars = new Dictionary<char, int>{
-		{'x', -1},
-		{'y', -1},
-		{'z', -1}
-	};
-
-
-    public override bool checkSymbol(Symbol symbol)
-    {
-        throw new NotImplementedException();
-    
-    }
-
-    public override bool checkCond()
-    {
-        throw new NotImplementedException();
-    }
-
-    public override List<ISymbol> genOutput() {
-        List<ISymbol> result = new List<ISymbol>();
-
-
-        return result;
-    }
-}
-
-
-
-// If true, mark this road module to be deleted
-class RuleRDel : Rule {
-    private String mySymbol = "R";
-    
+class RuleRBranch : Rule {
+    private string mySymbol = "R";
+        
 	private Dictionary<string, int> vars = new Dictionary<string, int>{
 		{"del", -1},
 		{"ruleAttr", -1},
+        {"state", (int)StateType.UNASSIGNED}
 	};
 
 
     public override bool checkSymbol(Symbol symbol)
     {
         if (mySymbol == symbol.ID) {
-            vars["del"] = (int)symbol.Values["del"];
-            vars["ruleAttr"] = (int)symbol.Values["ruleAttr"];
+            vars["del"] = symbol.Del;
+            vars["ruleAttr"] = symbol.RuleAttr;
+            vars["state"] = (int)symbol.State;
             return true;
         }
         return false;
@@ -147,12 +51,94 @@ class RuleRDel : Rule {
 
     public override bool checkCond()
     {
-        return vars["del"] < 0;
+        return vars["state"] == (int)StateType.SUCCESS;
+    }
+
+    public override List<ISymbol> genOutput() {
+        GD.Print("Generating branch");
+        //Two branch modules, B and a road module R plus the insertion query ?I are created.
+        List<ISymbol> result = new List<ISymbol>{
+            new Symbol("B", 0, 0, 0, StateType.UNASSIGNED),       // Branch 1
+            new Symbol("B", 0, 0, 0, StateType.UNASSIGNED),       // Branch 2
+            new Symbol("R", 0, 0, 0, StateType.UNASSIGNED),       // Road
+            new Symbol("?I", 0, 0, 0, StateType.UNASSIGNED)       // Insertion query
+        };
+        return result;
+    }
+}
+
+// If true, mark this road module to be deleted
+// p1: R(del, ruleAttr) : del<0 → ε
+// p3: R(del, ruleAttr) > ?I(roadAttr, state) : state==FAILED → ε
+class RuleRDel : Rule {
+    private string mySymbol = "R";
+    
+	private Dictionary<string, int> vars = new Dictionary<string, int>{
+		{"del", -1},
+		{"ruleAttr", -1},
+        {"state", (int)StateType.UNASSIGNED}
+	};
+
+
+    public override bool checkSymbol(Symbol symbol)
+    {
+        if (mySymbol == symbol.ID) {
+            vars["del"] = symbol.Del;
+            vars["ruleAttr"] = symbol.RuleAttr;
+            vars["state"] = (int)symbol.State;
+            return true;
+        }
+        return false;
+    }
+
+    public override bool checkCond()
+    {
+        // Check del flag and if inquery module state is set to failed
+        return vars["del"] < 0 || vars["state"] == (int)StateType.FAILURE;
     }
 
     public override List<ISymbol> genOutput() {
         List<ISymbol> result = new List<ISymbol>();
-        Symbol delSym = new Symbol("D", 0, null);
+        Symbol delSym = new Symbol("D", -1, -1, -1, StateType.UNASSIGNED);
+        result.Add(delSym);
+        return result;
+    }
+}
+
+/* --------------------------- 
+---------- B Rules -----------
+------------------------------ */
+
+
+/* --------------------------- 
+---------- I Rules -----------
+------------------------------ */
+
+// Insertion query deletion rule
+// p9: ?I(roadAttr,state) : state!=UNASSIGNED → ε
+class RuleIDel : Rule {
+    private String mySymbol = "?I";
+	private Dictionary<string, int> vars = new Dictionary<string, int>{
+		{"state", -1}
+	};
+
+    public override bool checkSymbol(Symbol symbol)
+    {
+        if (mySymbol == symbol.ID) {
+            vars["state"] = (int)symbol.State;
+            return true;
+        }
+        return false;
+    }
+
+    public override bool checkCond()
+    {
+        return vars["state"] != (int)StateType.UNASSIGNED;
+    }
+
+    public override List<ISymbol> genOutput() {
+        List<ISymbol> result = new List<ISymbol>();
+        Symbol delSym = new Symbol("D", -1, -1, -1, StateType.UNASSIGNED);
         result.Add(delSym);
         return result;
     }

@@ -8,9 +8,9 @@ public partial class RoadTest : Node3D
 {
 	public Dictionary<String, Rule> Rules = new Dictionary<String, Rule>
 	{
-		{"RuleA", new RuleA()},
-		{"RuleB", new RuleB()},
-		{"RuleI", new RuleI()}
+		{"RuleRBranch", new RuleRBranch()},
+		{"RuleRDel", new RuleRDel()},
+		{"RuleIDel", new RuleIDel()}
 	};
 
 	[Export]
@@ -38,7 +38,7 @@ public partial class RoadTest : Node3D
 	//public List<ISymbol> axiom = new List<ISymbol>{new Symbol("A",1), new Symbol("B", 3), new Symbol("A", 5)};
 
 	// begin with a basic road symbol and an insertion query to determine if legal place to put road
-	public List<ISymbol> generated = new List<ISymbol>{new Symbol("R", 0, new Dictionary<Variant, Variant>{{"del", 0}, {"ruleAttr", 0}}), new Symbol("?I", 0, new Dictionary<Variant, Variant>{{"ruleAttr", 0}, {"state", 0}})};
+	public List<ISymbol> generated = new List<ISymbol>{new Symbol("R", 0, 0, -1, StateType.UNASSIGNED), new Symbol("?I", 0, 0, 0, StateType.UNASSIGNED)};
 	//new List<ISymbol>{new Symbol("A", new Dictionary<Variant, Variant>(1)), new Symbol("B", new Dictionary<Variant, Variant>(3)), new Symbol("A", new Dictionary<Variant, Variant>(5))};
 
 	// Called when the node enters the scene tree for the first time.
@@ -102,8 +102,25 @@ public partial class RoadTest : Node3D
 		foreach (string r in Rules.Keys) {
 			Rule curRule = Rules[r];
 			// Check if symbol matches rule and any conditions
-			if (sym is Symbol) {										// General rewrites
+			if (sym is Symbol) {				
+				// General rewrites
 				Symbol castedSym = (Symbol) sym;
+
+				// Check LC and RC
+				// Check if an R symbol has an ?I query to its right
+				if (castedSym.ID == "R" && generated[i + 1] is Symbol) {
+					Symbol genCast = (Symbol)generated[i + 1];
+					if (genCast.ID == "?I") {
+						// Pass inquery's state to road to check
+						castedSym.State = genCast.State;
+					}
+				}
+				// Check if an ?I query has an R symbol to the left
+				else if (castedSym.ID == "?I" && generated[i - 1] is Symbol) {
+					Symbol genCast = (Symbol)generated[i - 1];
+					if (genCast.ID == "R") {
+					}
+				}
 				if (curRule.checkSymbol(castedSym) && curRule.checkCond()) {
 					result = curRule.genOutput();
 				}
@@ -164,7 +181,10 @@ public partial class RoadTest : Node3D
 	}
 
 	// have roads trend toward different "goals"
-	// maybe add some randomization??
+	// Their attributes are initialized according to the global goals
+	// which returns an array of attributes (pDel[0-2] for branch delay
+	// and deletion, pRuleAttr[0-2] for rule-specific attributes and
+	// pRoadAttr[0-2] for road data, e.g. length, angle, etc).
 	private void globalGoals(List<ISymbol> axiom) {
 
 	}
