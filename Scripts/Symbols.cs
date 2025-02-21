@@ -2,7 +2,24 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Dynamic;
 
+// Struct for road attributes
+public struct RoadAttributes {
+	public RoadAttributes(Vector3 pos, Vector3 dir, float ang, float len) {
+		Position = pos;
+		Direction = dir;
+		Angle = ang;
+		Length = len;
+	}
+
+	public Vector3 Position { get; set; }
+	public Vector3 Direction { get; set; }
+	public float Angle { get; set; }
+	public float Length { get; set; }
+
+	public override string ToString() => $"{Position}, {Direction}, {Angle}, {Length}";
+}
 
 public enum StateType {
 	UNASSIGNED,

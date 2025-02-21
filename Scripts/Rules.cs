@@ -58,6 +58,7 @@ class RuleRBranch : Rule {
     public override List<ISymbol> genOutput() {
         //Two branch modules, B and a road module R plus the insertion query ?I are created.
         List<ISymbol> result = new List<ISymbol>{
+            new Symbol("A", 0, 0, 0, StateType.UNASSIGNED),       // Road draw, Combination of + (rotate by angle) and F (move forward by length)
             new Symbol("B", 0, 0, 0, StateType.UNASSIGNED),       // Branch 1
             new Symbol("B", 0, 0, 0, StateType.UNASSIGNED),       // Branch 2
             new Symbol("R", 0, 0, 0, StateType.UNASSIGNED),       // Road
