@@ -6,6 +6,8 @@ using System.Dynamic;
 
 // Struct for road attributes
 public struct RoadAttributes {
+
+
 	public RoadAttributes(Vector3 pos, Vector3 dir, float ang, float len) {
 		Position = pos;
 		Direction = dir;
@@ -18,7 +20,7 @@ public struct RoadAttributes {
 	public float Angle { get; set; }
 	public float Length { get; set; }
 
-	public override string ToString() => $"{Position}, {Direction}, {Angle}, {Length}";
+	public override string ToString() => $"(Pos:{Position}, Dir:{Direction}, Ang:{Angle}, Len:{Length})";
 }
 
 public enum StateType {
@@ -34,14 +36,12 @@ public interface ISymbol {
 // Symbol used in road gen
 public struct Symbol : ISymbol
 {
-    public Symbol(String id, int delay, List<float> ruleAttribute, List<float> roadAttribute, Vector3 pos, Vector3 dir, StateType state)
+    public Symbol(String id, int delay, List<float> ruleAttribute, RoadAttributes roA, StateType state)
     {
 		ID = id; // ID
         Del = delay;
 		RuleAttr = ruleAttribute;
-		RoadAttr = roadAttribute;
-		Pos = pos;
-		Dir = dir;
+		RoadAttr = roA;
 		State = StateType.UNASSIGNED;
     }
 	public String ID { get; }
@@ -50,16 +50,9 @@ public struct Symbol : ISymbol
 
 	public List<float> RuleAttr { get; set; }
 
-	public List<float> RoadAttr { get; set; }
-
-	public Vector3 Pos { get; set; }
-
-	public Vector3 Dir { get; set; }
-
-
+	public RoadAttributes RoadAttr { get; set; }
 
 	public StateType State { get; set; }
-
     public override string ToString() => $"{ID}({Del}, {RuleAttr}, {RoadAttr}, {State})";
 }
 

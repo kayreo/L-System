@@ -40,7 +40,7 @@ public partial class RoadTest : Node3D
 	// Parameter lists to be populated by global goals
 	List<int> delays;
 	List<List<float>> ruleAttrs;
-	List<List<float>> roadAttrs;
+	List<RoadAttributes> roadAttrs;
 
 	// Init attributes
 	List<float> initRuleAttr = null;
@@ -52,7 +52,7 @@ public partial class RoadTest : Node3D
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
-		generated = new List<ISymbol>{new Symbol("R", 0, initRuleAttr, initRoadAttr, CurPos, CurDir, StateType.UNASSIGNED), new Symbol("?I", 0, null, null, Vector3.Zero, Vector3.Zero, StateType.UNASSIGNED)};
+		generated = new List<ISymbol>{new Symbol("R", 0, initRuleAttr, new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, 0f), StateType.UNASSIGNED), new Symbol("?I", 0, null, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED)};
 		
 		// Prep nodes
 		RoadList = GetNode<Node3D>("Roads");
@@ -62,17 +62,20 @@ public partial class RoadTest : Node3D
 		// Other setup
 		GD.Randomize();
 		randomizeDests();
+		delays = new List<int>();
+		ruleAttrs = new List<List<float>>();
+		roadAttrs = new List<RoadAttributes>();
 
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < 5; i++) {
+			GD.Print("----------------------------------------------------");
+			GD.Print("--------------------", "ITERATION: ", i, "--------------------");
+			GD.Print("----------------------------------------------------");
 			// Global goals generation
 			// First fill symbol vals using global goals, where you call queries to update your goals
-			genGoals(generated);
-			GD.Print("Global goals: ", string.Join(", ", generated));
-
 			// local constraints generation
 			// Next rewrite calls local constraints, which culls or rewrites rules based on queries made in global goals
 			localConstraints(generated);
-			GD.Print("Local Constraints: ", string.Join(", ", generated));
+			//GD.Print("Local Constraints: ", string.Join(", ", generated));
 
 			// Generate ideal successor for next iteration
 			generate(generated);
@@ -105,7 +108,7 @@ public partial class RoadTest : Node3D
 
 		// Store flattened
 		generated = results.SelectMany(subList => subList).ToList();
-		GD.Print("Generated: ", string.Join("", generated));
+		GD.Print("Generated: ", string.Join("\n\n", generated));
 	}
 
 	// Rewrites the given symbol based on its corresponding rule
@@ -138,20 +141,20 @@ public partial class RoadTest : Node3D
 
 					//globalGoals(castedSym.RoadAttr, castedSym.RuleAttr)
 					// If this is the branch rule, call global goals and populate params
-					if (r == "RuleBBranch") {
+					if (r == "RuleRBranch") {
 						// Use these for global goals param calls
-						//int roA = castedSym.RoadAttr;
-						//int ruA = castedSym.RuleAttr;
+						RoadAttributes roA = castedSym.RoadAttr;
+						List<float> ruA = castedSym.RuleAttr;
 						// Index 0: +F
 						// Index 1: B1, attrs 1
 						// Index 2: B2, attrs 2
 						// Index 3: R, attrs 0
-
-						foreach (ISymbol outSym in result) {
-							Symbol castedOutput = (Symbol)outSym;
-							// grab from global vars
+						globalGoals(ruA, roA);
+						for (int j = 1; j < result.Count; j++) {
+							Symbol castedOutput = (Symbol)result[j];
+							castedOutput.RoadAttr = roadAttrs[0];
+							result[j] = castedOutput;
 						}
-
 					}
 
 				}
@@ -189,11 +192,7 @@ public partial class RoadTest : Node3D
 					// Create a road
 					case "A":
 						//GD.Print("Add a road");
-						addRoad(castedSym.RoadAttr, castedSym.Pos);
-						break;
-					case "B":
-						//GD.Print("Branch road");
-						branchRoad();
+						addRoad(castedSym.RoadAttr.Angle, castedSym.RoadAttr.Position);
 						break;
 				}
 			}
@@ -224,39 +223,22 @@ public partial class RoadTest : Node3D
 	// TODO: where do i call thisssssss how do i update symbol params
 	// can i put this in the rule for branch gen
 	// I do not think i understand this
-	private void genGoals(List<ISymbol> axiom) {
-		for (int i = 0; i < axiom.Count; i++) {
-			if (axiom[i] is Symbol) {
-				Symbol castedSym = (Symbol)axiom[i];
-				if (castedSym.ID == "R") {
-					castedSym.RoadAttr = roadAttrs[0];
-					castedSym.Pos = CurPos;
-					castedSym.Dir = CurDir;
-				}
-				else if (castedSym.ID == "B") {
-					castedSym.RoadAttr = roadAttrs[1];
-				}
-				axiom[i] = castedSym;
-			} else if (axiom[i] is SymBranch) {
-				// Save position
-				PushedPos.Push(CurPos);
-				PushedAng.Push(CurAngle);
-				// If branch, recursively update symbols in branch
-				SymBranch castedBranch = (SymBranch)axiom[i];
-				genGoals(castedBranch.Syms);
-				// Pop back to position and angle
-				CurPos = PushedPos.Pop();
-				CurAngle = PushedAng.Pop();
-			}
-		}		
-	}
-
+	
 	// At this set of attributes, generate a set of 3 delays, ruleAttrs, and roadAttrs
 	// Then, use these values back in genGoals
-	private void globalGoals(List<float> curRuleAttr, List<float> curRoadAttr, Vector3 pos, Vector3 dir) {
+	private void globalGoals(List<float> curRuleAttr, RoadAttributes curRoadAttr) {
 		delays.Clear();
 		ruleAttrs.Clear();
 		roadAttrs.Clear();
+
+		// Increment position to next position
+		Vector3 nextPos = curRoadAttr.Position + new Vector3(50, 0, 50) * curRoadAttr.Direction;
+
+		// Adjust angle
+		float nextAng = curRoadAttr.Angle + getClosestDestAngle(nextPos, curRoadAttr.Direction);
+
+
+		Vector3 nextDir = curRoadAttr.Direction.Rotated(Vector3.Up, nextAng).Normalized();
 
 		// Generate delays
 		for (int i = 0; i < 3; i++) {
@@ -271,19 +253,9 @@ public partial class RoadTest : Node3D
 
 		// Generate roadAttr
 		for (int i = 0; i < 3; i++) {
-			List<float> roadAttr = new List<float>{ 
-				{50.0f},
-				{CurAngle}};
-			roadAttrs.Add(roadAttr);
+			RoadAttributes newRoA = new RoadAttributes(nextPos, nextDir, nextAng, 50f);
+			roadAttrs.Add(newRoA);
 		}
-
-		// Increment position to next position
-		CurPos += new Vector3(50, 0, 50) * CurDir;
-
-		// Adjust angle
-		CurAngle += getClosestDestAngle(CurPos);
-		GD.Print("Angle: ", CurAngle);
-		CurDir = CurDir.Rotated(Vector3.Up, CurAngle).Normalized();
 	}
 
 	// TODO: need to add state changing and param adjustment based on goals
@@ -317,30 +289,19 @@ public partial class RoadTest : Node3D
 	// TODO: branches much have a minimum angle difference (ie, road branches must be 45 degrees apart)
 	// Closest destination query, returns yaw needed to face thingy
 	// Does NOT do any rotating on its own
-	private float getClosestDestAngle(Vector3 pos) {
-		GD.Print("Checking position: ", pos);
-		GD.Print("Current direction: ", CurDir);
-
+	private float getClosestDestAngle(Vector3 pos, Vector3 dir) {
 		Node3D firstChild = (Node3D)DestList.GetChild(0);
 		float shortestDist = pos.DistanceTo(firstChild.Position);
-		GD.Print("dest pos: ", firstChild.Position);
-		float angle = CurDir.SignedAngleTo(firstChild.Position, Vector3.Up);
-		GD.Print("init angle: ", angle);
-		
+		float angle = dir.SignedAngleTo(firstChild.Position, Vector3.Up);
+
 		// Find closest destination to road
 		for (int d = 1; d < DestList.GetChildren().Count; d++) {
-			GD.Print("loop", d);
 			Node3D curChild = (Node3D)DestList.GetChild(d);
 			float curDist = pos.DistanceTo(curChild.Position);
-			GD.Print("Cur dist: ", curDist);
 			if (curDist < shortestDist) {
-				GD.Print("Getting closest : ", d);
-				GD.Print("Child pos: ", curChild.Position);
-				angle = CurDir.SignedAngleTo(curChild.Position, Vector3.Up);
-				GD.Print("closest angle: ", angle);
+				angle = dir.SignedAngleTo(curChild.Position, Vector3.Up);
 				shortestDist = curDist;
 			}
-
 		}
 		return angle;
 	}
@@ -350,26 +311,13 @@ public partial class RoadTest : Node3D
 	------------------------------ */
 
 	// Draw a road forward
-	private void addRoad(List<float> attrs, Vector3 pos) {
+	// Same as rule +F (Rotate by angle, draw a forward line by length)
+	private void addRoad(float angle, Vector3 pos) {
 		// Create new road and set position
 		Road newRoad = (Road)Road.Instantiate();
 		newRoad.Translate(pos);
-		newRoad.Rotate(Vector3.Up, attrs[1]);
+		newRoad.Rotate(Vector3.Up, angle);
 		RoadList.AddChild(newRoad);
-	}
-	
-	// Branch a road
-	private void branchRoad() {
-		// Create new road and set position
-		Road newRoad = (Road)Road.Instantiate();
-		newRoad.Translate(CurPos);
-
-		newRoad.Rotate(Vector3.Up, CurAngle);
-
-		RoadList.AddChild(newRoad);
-
-		// Increment position to next position
-		CurPos += new Vector3(50, 0, 50) * CurDir;
 	}
 
 
