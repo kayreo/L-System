@@ -34,7 +34,6 @@ class RuleRBranch : Rule {
         
 	private Dictionary<string, int> vars = new Dictionary<string, int>{
 		{"del", -1},
-		{"ruleAttr", -1},
         {"state", (int)StateType.UNASSIGNED}
 	};
 
@@ -43,7 +42,6 @@ class RuleRBranch : Rule {
     {
         if (mySymbol == symbol.ID) {
             vars["del"] = symbol.Del;
-            vars["ruleAttr"] = symbol.RuleAttr;
             vars["state"] = (int)symbol.State;
             return true;
         }
@@ -58,10 +56,10 @@ class RuleRBranch : Rule {
     public override List<ISymbol> genOutput() {
         //Two branch modules, B and a road module R plus the insertion query ?I are created.
         List<ISymbol> result = new List<ISymbol>{
-            new Symbol("B", 0, 0, 0, StateType.UNASSIGNED),       // Branch 1
-            new Symbol("B", 0, 0, 0, StateType.UNASSIGNED),       // Branch 2
-            new Symbol("R", 0, 0, 0, StateType.UNASSIGNED),       // Road
-            new Symbol("?I", 0, 0, 0, StateType.UNASSIGNED)       // Insertion query
+            new Symbol("B", 0, null, null, Vector3.Zero, Vector3.Zero, StateType.UNASSIGNED),       // Branch 1
+            new Symbol("B", 0, null, null, Vector3.Zero, Vector3.Zero, StateType.UNASSIGNED),       // Branch 2
+            new Symbol("R", 0, null, null, Vector3.Zero, Vector3.Zero, StateType.UNASSIGNED),       // Road
+            new Symbol("?I", 0, null, null, Vector3.Zero, Vector3.Zero, StateType.UNASSIGNED)       // Insertion query
         };
         return result;
     }
@@ -75,7 +73,6 @@ class RuleRDel : Rule {
     
 	private Dictionary<string, int> vars = new Dictionary<string, int>{
 		{"del", -1},
-		{"ruleAttr", -1},
         {"state", (int)StateType.UNASSIGNED}
 	};
 
@@ -84,7 +81,6 @@ class RuleRDel : Rule {
     {
         if (mySymbol == symbol.ID) {
             vars["del"] = symbol.Del;
-            vars["ruleAttr"] = symbol.RuleAttr;
             vars["state"] = (int)symbol.State;
             return true;
         }
@@ -111,9 +107,7 @@ class RuleB : Rule {
     private string mySymbol = "B";
 
 	private Dictionary<string, int> vars = new Dictionary<string, int>{
-		{"del", -1},
-		{"ruleAttr", -1},
-        {"roadAttr", -1}
+		{"del", -1}
 	};
 
 
@@ -121,8 +115,6 @@ class RuleB : Rule {
     {
         if (mySymbol == symbol.ID) {
             vars["del"] = symbol.Del;
-            vars["ruleAttr"] = symbol.RuleAttr;
-            vars["roadAttr"] = symbol.RoadAttr;
             return true;
         }
         return false;
@@ -137,12 +129,12 @@ class RuleB : Rule {
     public override List<ISymbol> genOutput() {
         List<ISymbol> result = new List<ISymbol>();
         if (vars["del"] > 0) {
-            Symbol Bsym = new Symbol("B", vars["del"] - 1, vars["ruleAttr"], vars["roadAttr"], StateType.UNASSIGNED);
+            Symbol Bsym = new Symbol("B", vars["del"] - 1, null, null, Vector3.Zero, Vector3.Zero, StateType.UNASSIGNED);
             result.Add(Bsym);
         } else if (vars["del"] == 0) {
             SymBranch BSym = new SymBranch();
-            Symbol R = new Symbol("R", vars["del"], vars["ruleAttr"], -1, StateType.UNASSIGNED);
-            Symbol I = new Symbol("?I", -1, -1, vars["roadAttr"], StateType.UNASSIGNED);
+            Symbol R = new Symbol("R", vars["del"], null, null, Vector3.Zero, Vector3.Zero, StateType.UNASSIGNED);
+            Symbol I = new Symbol("?I", -1, null, null, Vector3.Zero, Vector3.Zero, StateType.UNASSIGNED);
             BSym.Syms.Add(R);
             BSym.Syms.Add(I);
             result.Add(BSym);
@@ -193,14 +185,12 @@ class RuleI : Rule {
     private String mySymbol = "?I";
 	private Dictionary<string, int> vars = new Dictionary<string, int>{
 		{"state", -1},
-        {"roadAttr", -1}
 	};
 
     public override bool checkSymbol(Symbol symbol)
     {
         if (mySymbol == symbol.ID) {
             vars["state"] = (int)symbol.State;
-            vars["roadAttr"] = symbol.RoadAttr;
             return true;
         }
         return false;
@@ -213,7 +203,7 @@ class RuleI : Rule {
 
     public override List<ISymbol> genOutput() {
         List<ISymbol> result = new List<ISymbol>();
-        Symbol newISym = new Symbol("?I", -1, -1, vars["roadAttr"], StateType.UNASSIGNED);
+        Symbol newISym = new Symbol("?I", -1, null, null, Vector3.Zero, Vector3.Zero, StateType.UNASSIGNED);
         result.Add(newISym);
         return result;
     }
