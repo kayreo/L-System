@@ -135,6 +135,25 @@ public partial class RoadTest : Node3D
 				}
 				if (curRule.checkSymbol(castedSym) && curRule.checkCond()) {
 					result = curRule.genOutput();
+
+					//globalGoals(castedSym.RoadAttr, castedSym.RuleAttr)
+					// If this is the branch rule, call global goals and populate params
+					if (r == "RuleBBranch") {
+						// Use these for global goals param calls
+						//int roA = castedSym.RoadAttr;
+						//int ruA = castedSym.RuleAttr;
+						// Index 0: +F
+						// Index 1: B1, attrs 1
+						// Index 2: B2, attrs 2
+						// Index 3: R, attrs 0
+
+						foreach (ISymbol outSym in result) {
+							Symbol castedOutput = (Symbol)outSym;
+							// grab from global vars
+						}
+
+					}
+
 				}
 			} else if (sym is SymBranch) {								// Branch rewrites
 				SymBranch castedSym = (SymBranch)sym;					// Sym to rewrite
@@ -168,7 +187,7 @@ public partial class RoadTest : Node3D
 				//GD.Print("ID: ", castedSym.ID);
 				switch (castedSym.ID) {
 					// Create a road
-					case "R":
+					case "A":
 						//GD.Print("Add a road");
 						addRoad(castedSym.RoadAttr, castedSym.Pos);
 						break;
