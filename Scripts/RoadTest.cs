@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 
 public partial class RoadTest : Node3D
@@ -13,6 +14,7 @@ public partial class RoadTest : Node3D
 		{"RuleBDel", new RuleBDel()},
 		{"RuleI", new RuleI()},
 		{"RuleIDel", new RuleIDel()}
+		//{"RuleA", new RuleA()}
 	};
 
 	[Export]
@@ -66,7 +68,7 @@ public partial class RoadTest : Node3D
 		ruleAttrs = new List<List<float>>();
 		roadAttrs = new List<RoadAttributes>();
 
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < 7; i++) {
 			GD.Print("----------------------------------------------------");
 			GD.Print("--------------------", "ITERATION: ", i, "--------------------");
 			GD.Print("----------------------------------------------------");
@@ -88,6 +90,10 @@ public partial class RoadTest : Node3D
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
 	public override void _Process(double delta)
 	{
+		if (Input.IsActionJustPressed("Reset"))
+		{
+			GetTree().ReloadCurrentScene();
+		}
 	}
 
 	// TODO: maybe move some of these to a dif file when finished
@@ -100,9 +106,14 @@ public partial class RoadTest : Node3D
 		// Go through each symbol and evaluate
 		for (int i = 0; i < axiom.Count; i++) {
 			ISymbol curSymbol = axiom[i];
-			List<ISymbol> rewroteSym = rewrite(axiom, curSymbol, i);
-			if (rewroteSym!= null) {
-				results.Add(rewroteSym);
+			if (curSymbol is Symbol && ((Symbol)curSymbol).ID == "A") {
+				results.Add(new List<ISymbol>{curSymbol});
+			}
+			else {
+				List<ISymbol> rewroteSym = rewrite(axiom, curSymbol, i);
+				if (rewroteSym!= null) {
+					results.Add(rewroteSym);
+				}
 			}
 		}
 
@@ -120,7 +131,6 @@ public partial class RoadTest : Node3D
 			if (sym is Symbol) {				
 				// General rewrites
 				Symbol castedSym = (Symbol) sym;
-
 				// Check LC and RC
 				// Check if an R symbol has an ?I query to its right
 				if (castedSym.ID == "R" && axiom[i + 1] is Symbol) {
@@ -146,15 +156,24 @@ public partial class RoadTest : Node3D
 						RoadAttributes roA = castedSym.RoadAttr;
 						List<float> ruA = castedSym.RuleAttr;
 						// Index 0: +F
-						// Index 1: B1, attrs 1
-						// Index 2: B2, attrs 2
-						// Index 3: R, attrs 0
+						// Index 1: B1, attrs 0
+						// Index 2: B2, attrs 1
+						// Index 3: R, attrs 2
+						// Index 4: I, attrs 2
 						globalGoals(ruA, roA);
-						for (int j = 1; j < result.Count; j++) {
+						Symbol drawRoad = (Symbol)result[0];
+						drawRoad.RoadAttr = castedSym.RoadAttr;
+						drawRoad.RuleAttr = castedSym.RuleAttr;
+						result[0] = drawRoad;
+						for (int j = 1; j < result.Count - 1; j++) {
 							Symbol castedOutput = (Symbol)result[j];
-							castedOutput.RoadAttr = roadAttrs[0];
+							castedOutput.Del = delays[j - 1];
+							castedOutput.RoadAttr = roadAttrs[j - 1];
 							result[j] = castedOutput;
 						}
+						Symbol iModule = (Symbol)result[result.Count - 1];
+						iModule.RoadAttr = roadAttrs[2];
+						result[result.Count - 1] = iModule;
 					}
 
 				}
@@ -234,15 +253,18 @@ public partial class RoadTest : Node3D
 		// Increment position to next position
 		Vector3 nextPos = curRoadAttr.Position + new Vector3(50, 0, 50) * curRoadAttr.Direction;
 
-		// Adjust angle
-		float nextAng = curRoadAttr.Angle + getClosestDestAngle(nextPos, curRoadAttr.Direction);
+		// Adjust angle for branches
+		float nextAngB1 = curRoadAttr.Angle + 90;
+		float nextAngB2 = curRoadAttr.Angle - 90;
 
-
-		Vector3 nextDir = curRoadAttr.Direction.Rotated(Vector3.Up, nextAng).Normalized();
+		// Adjust angle for road
+		float nextAngR = curRoadAttr.Angle + getClosestDestAngle(nextPos, curRoadAttr.Direction);
+		Vector3 nextDirR = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngR).Normalized();
 
 		// Generate delays
+		// arbitrary rn
 		for (int i = 0; i < 3; i++) {
-			delays.Add(i);
+			delays.Add(i * 2);
 		}
 
 		// Generate ruleAttr
@@ -252,10 +274,17 @@ public partial class RoadTest : Node3D
 		}
 
 		// Generate roadAttr
-		for (int i = 0; i < 3; i++) {
-			RoadAttributes newRoA = new RoadAttributes(nextPos, nextDir, nextAng, 50f);
-			roadAttrs.Add(newRoA);
-		}
+		// Branch 1: Try branching to one direction
+		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position, curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB1).Normalized(), nextAngB1, 50f);
+		roadAttrs.Add(newBranch1);
+
+		// Branch 2: Try branching to another direction
+		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position, curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB2).Normalized(), nextAngB2, 50f);
+		roadAttrs.Add(newBranch2);
+
+		// Road: Try to move forward
+		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, 50f);
+		roadAttrs.Add(newRoA);
 	}
 
 	// TODO: need to add state changing and param adjustment based on goals
@@ -314,6 +343,7 @@ public partial class RoadTest : Node3D
 	// Same as rule +F (Rotate by angle, draw a forward line by length)
 	private void addRoad(float angle, Vector3 pos) {
 		// Create new road and set position
+		//GD.Print("Adding a road at: ", pos);
 		Road newRoad = (Road)Road.Instantiate();
 		newRoad.Translate(pos);
 		newRoad.Rotate(Vector3.Up, angle);

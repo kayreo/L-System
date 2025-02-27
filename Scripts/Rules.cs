@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Windows.Markup;
 
@@ -113,11 +114,14 @@ class RuleB : Rule {
 		{"del", -1}
 	};
 
+    private RoadAttributes roadAttr;
+
 
     public override bool checkSymbol(Symbol symbol)
     {
         if (mySymbol == symbol.ID) {
             vars["del"] = symbol.Del;
+            roadAttr = symbol.RoadAttr;
             return true;
         }
         return false;
@@ -132,12 +136,12 @@ class RuleB : Rule {
     public override List<ISymbol> genOutput() {
         List<ISymbol> result = new List<ISymbol>();
         if (vars["del"] > 0) {
-            Symbol Bsym = new Symbol("B", vars["del"] - 1, null, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED);
+            Symbol Bsym = new Symbol("B", vars["del"] - 1, null, roadAttr, StateType.UNASSIGNED);
             result.Add(Bsym);
         } else if (vars["del"] == 0) {
             SymBranch BSym = new SymBranch();
-            Symbol R = new Symbol("R", vars["del"], null, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED);
-            Symbol I = new Symbol("?I", -1, null, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED);
+            Symbol R = new Symbol("R", vars["del"], null, roadAttr, StateType.UNASSIGNED);
+            Symbol I = new Symbol("?I", -1, null, roadAttr, StateType.UNASSIGNED);
             BSym.Syms.Add(R);
             BSym.Syms.Add(I);
             result.Add(BSym);
@@ -236,5 +240,37 @@ class RuleIDel : Rule {
 
     public override List<ISymbol> genOutput() {
         return null;
+    }
+}
+
+/* --------------------------- 
+---------- A Rules -----------
+------------------------------ */
+// If you see an A symbol keep it
+class RuleA : Rule {
+    private String mySymbol = "?I";
+	private int del = -1;
+
+    private RoadAttributes roadAttr;
+
+    public override bool checkSymbol(Symbol symbol)
+    {
+        if (mySymbol == symbol.ID) {
+            del = symbol.Del;
+            roadAttr = symbol.RoadAttr;
+            return true;
+        }
+        return false;
+    }
+
+    public override bool checkCond()
+    {
+        return true;
+    }
+
+    public override List<ISymbol> genOutput() {
+        List<ISymbol> result = new List<ISymbol>();
+        result.Add(new Symbol("A", del, null, roadAttr, StateType.UNASSIGNED));
+        return result;
     }
 }
