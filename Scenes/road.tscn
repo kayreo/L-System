@@ -15,6 +15,7 @@ size = Vector2(10, 50)
 top_radius = 10.0
 
 [node name="Road" type="Node3D"]
+transform = Transform3D(0.999947, 0.0102624, 0, -0.0102624, 0.999947, 0, 0, 0, 1, 0, 0, 0)
 script = ExtResource("1_j3spn")
 
 [node name="StaticBody3D" type="StaticBody3D" parent="."]
@@ -27,4 +28,5 @@ shape = SubResource("BoxShape3D_8l4fk")
 
 [node name="MeshInstance3D2" type="MeshInstance3D" parent="StaticBody3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -18.141)
+visible = false
 mesh = SubResource("CylinderMesh_gs8on")

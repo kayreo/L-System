@@ -23,6 +23,9 @@ public partial class RoadTest : Node3D
 	[Export]
 	public PackedScene Destination { get; set; }
 
+	[Export]
+	public int Iterations { get; set; }
+
 	public Node3D RoadList;
 
 	public Node3D DestList;
@@ -54,8 +57,6 @@ public partial class RoadTest : Node3D
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
-		generated = new List<ISymbol>{new Symbol("R", 0, initRuleAttr, new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, 0f), StateType.UNASSIGNED), new Symbol("?I", 0, null, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED)};
-		
 		// Prep nodes
 		RoadList = GetNode<Node3D>("Roads");
 		DestList = GetNode<Node3D>("Destinations");
@@ -64,14 +65,42 @@ public partial class RoadTest : Node3D
 		// Other setup
 		GD.Randomize();
 		randomizeDests();
+
+		buildRoads();
+	}
+
+	// Called every frame. 'delta' is the elapsed time since the previous frame.
+	public override void _Process(double delta)
+	{
+		if (Input.IsActionJustReleased("Reset"))
+		{
+			GetTree().ReloadCurrentScene();
+		}
+		if (Input.IsActionJustReleased("Progress")) {
+			Iterations++;
+			buildRoads();
+		}
+		if (Input.IsActionJustReleased("Regress")) {
+			Iterations--;
+			buildRoads();
+		}
+	}
+
+	private void buildRoads() {
+		GD.Print("Running with an iteration of : " + Iterations);
+		generated = new List<ISymbol>{new Symbol("R", 0, initRuleAttr, new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, 0f), StateType.UNASSIGNED), new Symbol("?I", 0, null, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED)};
+		
 		delays = new List<int>();
 		ruleAttrs = new List<List<float>>();
 		roadAttrs = new List<RoadAttributes>();
 
-		for (int i = 0; i < 7; i++) {
-			GD.Print("----------------------------------------------------");
-			GD.Print("--------------------", "ITERATION: ", i, "--------------------");
-			GD.Print("----------------------------------------------------");
+		foreach (Node3D c in RoadList.GetChildren()) {
+			RoadList.RemoveChild(c);
+		}
+		for (int i = 0; i < Iterations; i++) {
+			// GD.Print("----------------------------------------------------");
+			// GD.Print("--------------------", "ITERATION: ", i, "--------------------");
+			// GD.Print("----------------------------------------------------");
 			// Global goals generation
 			// First fill symbol vals using global goals, where you call queries to update your goals
 			// local constraints generation
@@ -85,15 +114,6 @@ public partial class RoadTest : Node3D
 		// Interpret
 		// finally, interpret rule and build road!
 		interpret(generated);
-	}
-
-	// Called every frame. 'delta' is the elapsed time since the previous frame.
-	public override void _Process(double delta)
-	{
-		if (Input.IsActionJustPressed("Reset"))
-		{
-			GetTree().ReloadCurrentScene();
-		}
 	}
 
 	// TODO: maybe move some of these to a dif file when finished
@@ -119,7 +139,7 @@ public partial class RoadTest : Node3D
 
 		// Store flattened
 		generated = results.SelectMany(subList => subList).ToList();
-		GD.Print("Generated: ", string.Join("\n\n", generated));
+		//GD.Print("Generated: ", string.Join("\n\n", generated));
 	}
 
 	// Rewrites the given symbol based on its corresponding rule
@@ -131,6 +151,9 @@ public partial class RoadTest : Node3D
 			if (sym is Symbol) {				
 				// General rewrites
 				Symbol castedSym = (Symbol) sym;
+				if (castedSym.ID == "A") {
+					result = new List<ISymbol>{castedSym};
+				}
 				// Check LC and RC
 				// Check if an R symbol has an ?I query to its right
 				if (castedSym.ID == "R" && axiom[i + 1] is Symbol) {
@@ -148,18 +171,12 @@ public partial class RoadTest : Node3D
 				}
 				if (curRule.checkSymbol(castedSym) && curRule.checkCond()) {
 					result = curRule.genOutput();
-
 					//globalGoals(castedSym.RoadAttr, castedSym.RuleAttr)
 					// If this is the branch rule, call global goals and populate params
 					if (r == "RuleRBranch") {
 						// Use these for global goals param calls
 						RoadAttributes roA = castedSym.RoadAttr;
 						List<float> ruA = castedSym.RuleAttr;
-						// Index 0: +F
-						// Index 1: B1, attrs 0
-						// Index 2: B2, attrs 1
-						// Index 3: R, attrs 2
-						// Index 4: I, attrs 2
 						globalGoals(ruA, roA);
 						Symbol drawRoad = (Symbol)result[0];
 						drawRoad.RoadAttr = castedSym.RoadAttr;
@@ -254,8 +271,8 @@ public partial class RoadTest : Node3D
 		Vector3 nextPos = curRoadAttr.Position + new Vector3(50, 0, 50) * curRoadAttr.Direction;
 
 		// Adjust angle for branches
-		float nextAngB1 = curRoadAttr.Angle + 90;
-		float nextAngB2 = curRoadAttr.Angle - 90;
+		float nextAngB1 = curRoadAttr.Angle + 1.57f;
+		float nextAngB2 = curRoadAttr.Angle - 1.57f;
 
 		// Adjust angle for road
 		float nextAngR = curRoadAttr.Angle + getClosestDestAngle(nextPos, curRoadAttr.Direction);
@@ -263,8 +280,8 @@ public partial class RoadTest : Node3D
 
 		// Generate delays
 		// arbitrary rn
-		for (int i = 0; i < 3; i++) {
-			delays.Add(i * 2);
+		for (int i = 3; i >= 0; i--) {
+			delays.Add(i);
 		}
 
 		// Generate ruleAttr
@@ -275,11 +292,11 @@ public partial class RoadTest : Node3D
 
 		// Generate roadAttr
 		// Branch 1: Try branching to one direction
-		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position, curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB1).Normalized(), nextAngB1, 50f);
+		RoadAttributes newBranch1 = new RoadAttributes(nextPos, curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB1).Normalized(), nextAngB1, 50f);
 		roadAttrs.Add(newBranch1);
 
 		// Branch 2: Try branching to another direction
-		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position, curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB2).Normalized(), nextAngB2, 50f);
+		RoadAttributes newBranch2 = new RoadAttributes(nextPos, curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB2).Normalized(), nextAngB2, 50f);
 		roadAttrs.Add(newBranch2);
 
 		// Road: Try to move forward
