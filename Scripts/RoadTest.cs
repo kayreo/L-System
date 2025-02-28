@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Xml.XPath;
 
 public partial class RoadTest : Node3D
 {
@@ -87,7 +88,7 @@ public partial class RoadTest : Node3D
 	}
 
 	private void buildRoads() {
-		GD.Print("Running with an iteration of : " + Iterations);
+		//GD.Print("Running with an iteration of : " + Iterations);
 		generated = new List<ISymbol>{new Symbol("R", 0, initRuleAttr, new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, 0f), StateType.UNASSIGNED), new Symbol("?I", 0, null, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED)};
 		
 		delays = new List<int>();
@@ -270,19 +271,26 @@ public partial class RoadTest : Node3D
 		// Increment position to next position
 		Vector3 nextPos = curRoadAttr.Position + new Vector3(50, 0, 50) * curRoadAttr.Direction;
 
-		// Adjust angle for branches
-		float nextAngB1 = curRoadAttr.Angle + 1.57f;
-		float nextAngB2 = curRoadAttr.Angle - 1.57f;
-
-		// Adjust angle for road
-		float nextAngR = curRoadAttr.Angle + getClosestDestAngle(nextPos, curRoadAttr.Direction);
+		// Adjust angle and dir for road
+		float nextAngR = getClosestDestAngle(nextPos, curRoadAttr.Direction);
+		GD.Print("Cur: " + curRoadAttr.Angle);
+		GD.Print("Closest: " + getClosestDestAngle(nextPos, curRoadAttr.Direction));
+		float sum = curRoadAttr.Angle + getClosestDestAngle(nextPos, curRoadAttr.Direction);
+		GD.Print("Sum: "  + sum);
 		Vector3 nextDirR = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngR).Normalized();
+
+		// Adjust angle and dir for branches
+		float nextAngB1 = curRoadAttr.Angle + 1.57f;
+		Vector3 nextDirB1 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB1).Normalized();
+		float nextAngB2 = curRoadAttr.Angle - 1.57f;
+		Vector3 nextDirB2 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB2).Normalized();
+
 
 		// Generate delays
 		// arbitrary rn
-		for (int i = 3; i >= 0; i--) {
-			delays.Add(i);
-		}
+		delays.Add(3);
+		delays.Add(20);
+		delays.Add(0);
 
 		// Generate ruleAttr
 		for (int i = 0; i < 3; i++) {
@@ -292,11 +300,11 @@ public partial class RoadTest : Node3D
 
 		// Generate roadAttr
 		// Branch 1: Try branching to one direction
-		RoadAttributes newBranch1 = new RoadAttributes(nextPos, curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB1).Normalized(), nextAngB1, 50f);
+		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position + new Vector3(50, 0, 50) * nextDirB1, nextDirB1, nextAngB1, 50f);
 		roadAttrs.Add(newBranch1);
 
 		// Branch 2: Try branching to another direction
-		RoadAttributes newBranch2 = new RoadAttributes(nextPos, curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB2).Normalized(), nextAngB2, 50f);
+		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position + new Vector3(50, 0, 50) * nextDirB2, nextDirB2, nextAngB2, 50f);
 		roadAttrs.Add(newBranch2);
 
 		// Road: Try to move forward
@@ -338,18 +346,38 @@ public partial class RoadTest : Node3D
 	private float getClosestDestAngle(Vector3 pos, Vector3 dir) {
 		Node3D firstChild = (Node3D)DestList.GetChild(0);
 		float shortestDist = pos.DistanceTo(firstChild.Position);
-		float angle = dir.SignedAngleTo(firstChild.Position, Vector3.Up);
+
+		Vector3 dirToObject = (firstChild.Position - pos).Normalized();
+		float angle = dir.SignedAngleTo(dirToObject, Vector3.Up);
 
 		// Find closest destination to road
 		for (int d = 1; d < DestList.GetChildren().Count; d++) {
 			Node3D curChild = (Node3D)DestList.GetChild(d);
 			float curDist = pos.DistanceTo(curChild.Position);
 			if (curDist < shortestDist) {
-				angle = dir.SignedAngleTo(curChild.Position, Vector3.Up);
 				shortestDist = curDist;
+				dirToObject = (curChild.Position - pos).Normalized();
+				angle = dir.SignedAngleTo(dirToObject, Vector3.Up);
 			}
 		}
 		return angle;
+	}
+
+	private Node3D getClosestDest(Vector3 pos) {
+		Node3D firstChild = (Node3D)DestList.GetChild(0);
+		float shortestDist = pos.DistanceTo(firstChild.Position);
+
+		Node3D result = firstChild;
+
+		for (int d = 1; d < DestList.GetChildren().Count; d++) {
+			Node3D curChild = (Node3D)DestList.GetChild(d);
+			float curDist = pos.DistanceTo(curChild.Position);
+			if (curDist < shortestDist) {
+				shortestDist = curDist;
+				result = curChild;
+			}
+		}
+		return result;
 	}
 
 	/* --------------------------- 
@@ -362,8 +390,8 @@ public partial class RoadTest : Node3D
 		// Create new road and set position
 		//GD.Print("Adding a road at: ", pos);
 		Road newRoad = (Road)Road.Instantiate();
-		newRoad.Translate(pos);
-		newRoad.Rotate(Vector3.Up, angle);
+		//newRoad.Translate(pos);
+		newRoad.LookAtFromPosition(pos, getClosestDest(pos).Position);
 		RoadList.AddChild(newRoad);
 	}
 

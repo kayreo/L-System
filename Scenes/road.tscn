@@ -28,5 +28,4 @@ shape = SubResource("BoxShape3D_8l4fk")
 
 [node name="MeshInstance3D2" type="MeshInstance3D" parent="StaticBody3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -18.141)
-visible = false
 mesh = SubResource("CylinderMesh_gs8on")
