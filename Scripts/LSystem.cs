@@ -17,8 +17,6 @@ public partial class LSystem : Node3D
 		{"RuleIDel", new RuleIDel()}
 	};
 
-	public PackedScene Road { get; set; }
-
 	public PackedScene Destination { get; set; }
 
 	public Node3D RoadList;
@@ -49,8 +47,7 @@ public partial class LSystem : Node3D
 	// begin with a basic road symbol and an insertion query to determine if legal place to put road
 	public List<ISymbol> generated;
 
-	public LSystem(PackedScene r, Node3D rList, Node3D dList) {
-		Road = r;
+	public LSystem(Node3D rList, Node3D dList) {
 		DestList = dList;
 		RoadList = rList;
 	}
@@ -74,7 +71,7 @@ public partial class LSystem : Node3D
 		delays = new List<int>();
 		ruleAttrs = new List<RuleAttributes>();
 		roadAttrs = new List<RoadAttributes>();
-		
+
 		foreach (Node3D c in RoadList.GetChildren()) {
 			RoadList.RemoveChild(c);
 		}

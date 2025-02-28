@@ -35,7 +35,7 @@ public partial class RoadTest : Node3D
 
 		// Other setup
 		GD.Randomize();
-		L = new LSystem(Road, RoadList, DestList);
+		L = new LSystem(RoadList, DestList);
 
 		randomizeDests();
 
