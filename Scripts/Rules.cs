@@ -59,11 +59,11 @@ class RuleRBranch : Rule {
     public override List<ISymbol> genOutput() {
         //Two branch modules, B and a road module R plus the insertion query ?I are created.
         List<ISymbol> result = new List<ISymbol>{
-            new Symbol("A", 0, null, savedAttr, StateType.UNASSIGNED),
-            new Symbol("B", 0, null, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED),       // Branch 1
-            new Symbol("B", 0, null, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED),       // Branch 2
-            new Symbol("R", 0, null, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED),       // Road
-            new Symbol("?I", 0, null, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED)       // Insertion query
+            new Symbol("A", 0, new RuleAttributes(), savedAttr, StateType.UNASSIGNED),
+            new Symbol("B", 0, new RuleAttributes(), new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED),       // Branch 1
+            new Symbol("B", 0, new RuleAttributes(), new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED),       // Branch 2
+            new Symbol("R", 0, new RuleAttributes(), new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED),       // Road
+            new Symbol("?I", 0, new RuleAttributes(), new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED)       // Insertion query
         };
         return result;
     }
@@ -136,12 +136,12 @@ class RuleB : Rule {
     public override List<ISymbol> genOutput() {
         List<ISymbol> result = new List<ISymbol>();
         if (vars["del"] > 0) {
-            Symbol Bsym = new Symbol("B", vars["del"] - 1, null, roadAttr, StateType.UNASSIGNED);
+            Symbol Bsym = new Symbol("B", vars["del"] - 1, new RuleAttributes(), roadAttr, StateType.UNASSIGNED);
             result.Add(Bsym);
         } else if (vars["del"] == 0) {
             SymBranch BSym = new SymBranch();
-            Symbol R = new Symbol("R", vars["del"], null, roadAttr, StateType.UNASSIGNED);
-            Symbol I = new Symbol("?I", -1, null, roadAttr, StateType.UNASSIGNED);
+            Symbol R = new Symbol("R", vars["del"], new RuleAttributes(), roadAttr, StateType.UNASSIGNED);
+            Symbol I = new Symbol("?I", -1, new RuleAttributes(), roadAttr, StateType.UNASSIGNED);
             BSym.Syms.Add(R);
             BSym.Syms.Add(I);
             result.Add(BSym);
@@ -210,7 +210,7 @@ class RuleI : Rule {
 
     public override List<ISymbol> genOutput() {
         List<ISymbol> result = new List<ISymbol>();
-        Symbol newISym = new Symbol("?I", -1, null, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED);
+        Symbol newISym = new Symbol("?I", -1, new RuleAttributes(), new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f), StateType.UNASSIGNED);
         result.Add(newISym);
         return result;
     }
@@ -270,7 +270,7 @@ class RuleA : Rule {
 
     public override List<ISymbol> genOutput() {
         List<ISymbol> result = new List<ISymbol>();
-        result.Add(new Symbol("A", del, null, roadAttr, StateType.UNASSIGNED));
+        result.Add(new Symbol("A", del, new RuleAttributes(), roadAttr, StateType.UNASSIGNED));
         return result;
     }
 }

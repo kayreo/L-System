@@ -4,10 +4,15 @@ using System.Collections.Generic;
 using System.Data;
 using System.Dynamic;
 
+// Struct for rule attributes
+public struct RuleAttributes {
+	public RuleAttributes() {
+		
+	}
+}
+
 // Struct for road attributes
 public struct RoadAttributes {
-
-
 	public RoadAttributes(Vector3 pos, Vector3 dir, float ang, float len) {
 		Position = pos;
 		Direction = dir;
@@ -36,7 +41,7 @@ public interface ISymbol {
 // Symbol used in road gen
 public struct Symbol : ISymbol
 {
-    public Symbol(String id, int delay, List<float> ruleAttribute, RoadAttributes roA, StateType state)
+    public Symbol(String id, int delay, RuleAttributes ruleAttribute, RoadAttributes roA, StateType state)
     {
 		ID = id; // ID
         Del = delay;
@@ -48,7 +53,7 @@ public struct Symbol : ISymbol
 
     public int Del { get; set; }
 
-	public List<float> RuleAttr { get; set; }
+	public RuleAttributes RuleAttr { get; set; }
 
 	public RoadAttributes RoadAttr { get; set; }
 
