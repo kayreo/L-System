@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://b4jq2j8wk8veh"]
+[gd_scene load_steps=7 format=3 uid="uid://b4jq2j8wk8veh"]
 
 [ext_resource type="Script" path="res://Scripts/Road.cs" id="1_j3spn"]
 
@@ -13,6 +13,9 @@ size = Vector2(10, 50)
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_gs8on"]
 top_radius = 10.0
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_ai4ks"]
+radius = 17.4244
 
 [node name="Road" type="Node3D"]
 transform = Transform3D(0.999947, 0.0102624, 0, -0.0102624, 0.999947, 0, 0, 0, 1, 0, 0, 0)
@@ -29,3 +32,9 @@ shape = SubResource("BoxShape3D_8l4fk")
 [node name="MeshInstance3D2" type="MeshInstance3D" parent="StaticBody3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -18.141)
 mesh = SubResource("CylinderMesh_gs8on")
+
+[node name="Detection" type="Area3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Detection"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -17.7331)
+shape = SubResource("SphereShape3D_ai4ks")

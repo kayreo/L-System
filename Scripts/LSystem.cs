@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
-using System.Xml.XPath;
 
 public partial class LSystem : Node3D
 {
@@ -17,7 +16,7 @@ public partial class LSystem : Node3D
 		{"RuleIDel", new RuleIDel()}
 	};
 
-	public PackedScene Destination { get; set; }
+	public PackedScene Road { get; set; }
 
 	public Node3D RoadList;
 
@@ -42,14 +41,15 @@ public partial class LSystem : Node3D
 
 	// Init attributes
 	RuleAttributes initRuleAttr = new RuleAttributes();
-	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, 0f);
+	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, 0f, Vector3.Zero);
 
 	// begin with a basic road symbol and an insertion query to determine if legal place to put road
 	public List<ISymbol> generated;
 
-	public LSystem(Node3D rList, Node3D dList) {
+	public LSystem(Node3D rList, Node3D dList, PackedScene roadScene) {
 		DestList = dList;
 		RoadList = rList;
+		Road = roadScene;
 	}
 
 	// Called when the node enters the scene tree for the first time.
@@ -72,9 +72,6 @@ public partial class LSystem : Node3D
 		ruleAttrs = new List<RuleAttributes>();
 		roadAttrs = new List<RoadAttributes>();
 
-		foreach (Node3D c in RoadList.GetChildren()) {
-			RoadList.RemoveChild(c);
-		}
 		//GD.Print("Running with an iteration of : " + Iterations);
 		generated = new List<ISymbol>{new Symbol("R", 0, initRuleAttr, initRoadAttr, StateType.UNASSIGNED), new Symbol("?I", 0, new RuleAttributes(), initRoadAttr, StateType.UNASSIGNED)};
 
@@ -249,15 +246,15 @@ public partial class LSystem : Node3D
 
 		// Generate roadAttr
 		// Branch 1: Try branching to one direction
-		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position + new Vector3(50, 0, 50) * nextDirB1, nextDirB1, nextAngB1, 50f);
+		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position + new Vector3(50, 0, 50) * nextDirB1, nextDirB1, nextAngB1, 50f, getClosestDest(nextPos).Position);
 		roadAttrs.Add(newBranch1);
 
 		// Branch 2: Try branching to another direction
-		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position + new Vector3(50, 0, 50) * nextDirB2, nextDirB2, nextAngB2, 50f);
+		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position + new Vector3(50, 0, 50) * nextDirB2, nextDirB2, nextAngB2, 50f, getClosestDest(nextPos).Position);
 		roadAttrs.Add(newBranch2);
 
 		// Road: Try to move forward
-		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, 50f);
+		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, 50f, getClosestDest(nextPos).Position);
 		roadAttrs.Add(newRoA);
 	}
 
@@ -286,7 +283,46 @@ public partial class LSystem : Node3D
 	// Queries whether the road can be inserted
 	// checks for legal terrain, or if road will intersect with water, mountains, etc.
 	private bool insertQuery(RoadAttributes roadAttr) {
+		//GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition);
+		Road testRoad = (Road)Road.Instantiate();
+		testRoad.Scale = new Vector3(3, 3, 3);
+		Area3D d = (Area3D)testRoad.GetNode("Detection");
+		d.BodyEntered += getDetectionBodies;
+		if (!roadAttr.Position.Equals(roadAttr.LookPosition)) {
+			testRoad.LookAtFromPosition(roadAttr.Position, roadAttr.LookPosition);
+		} else {
+			testRoad.Translate(roadAttr.Position);
+		}
+		RoadList.AddChild(testRoad);
+
+		foreach (Node item in d.GetOverlappingBodies()) {
+			GD.Print("Finding an object");
+			GD.Print("ITEM: " + ((Node3D)item).Position);
+		}
+		//RoadList.GetChild(RoadList.GetChildren().Count - 1).QueueFree();
 		return true;
+	}
+
+	private void getDetectionBodies(Node3D body) {
+		GD.Print("Intersected");
+	}
+
+	// Get the closest destination node the road is near
+	private Node3D getClosestDest(Vector3 pos) {
+		Node3D firstChild = (Node3D)DestList.GetChild(0);
+		float shortestDist = pos.DistanceTo(firstChild.Position);
+
+		Node3D result = firstChild;
+
+		for (int d = 1; d < DestList.GetChildren().Count; d++) {
+			Node3D curChild = (Node3D)DestList.GetChild(d);
+			float curDist = pos.DistanceTo(curChild.Position);
+			if (curDist < shortestDist) {
+				shortestDist = curDist;
+				result = curChild;
+			}
+		}
+		return result;
 	}
 
 	// TODO: branches much have a minimum angle difference (ie, road branches must be 45 degrees apart)

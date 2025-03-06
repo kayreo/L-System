@@ -35,10 +35,21 @@ public partial class RoadTest : Node3D
 
 		// Other setup
 		GD.Randomize();
-		L = new LSystem(RoadList, DestList);
+		L = new LSystem(RoadList, DestList, Road);
 
 		randomizeDests();
 
+		generateRoads();
+	}
+
+	private void generateRoads() {
+		for (int i = 0; i < Iterations; i++) {
+			// clear road list
+			foreach (Node roadChild in RoadList.GetChildren()) {
+				roadChild.QueueFree();
+			}
+			interpret(L.buildRoads(i));
+		}
 		interpret(L.buildRoads(Iterations));
 	}
 
@@ -51,11 +62,11 @@ public partial class RoadTest : Node3D
 		}
 		if (Input.IsActionJustReleased("Progress")) {
 			Iterations++;
-			interpret(L.buildRoads(Iterations));
+			generateRoads();
 		}
 		if (Input.IsActionJustReleased("Regress")) {
 			Iterations--;
-			interpret(L.buildRoads(Iterations));
+			generateRoads();
 		}
 	}
 
@@ -72,7 +83,7 @@ public partial class RoadTest : Node3D
 					// Create a road
 					case "A":
 						//GD.Print("Add a road");
-						addRoad(castedSym.RoadAttr.Angle, castedSym.RoadAttr.Position);
+						addRoad(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 				}
 			}
@@ -92,12 +103,17 @@ public partial class RoadTest : Node3D
 
 	// Draw a road forward
 	// Same as rule +F (Rotate by angle, draw a forward line by length)
-	private void addRoad(float angle, Vector3 pos) {
+	private void addRoad(Vector3 pos, Vector3 lookPos) {
 		// Create new road and set position
 		//GD.Print("Adding a road at: ", pos);
 		Road newRoad = (Road)Road.Instantiate();
 		//newRoad.Translate(pos);
-		newRoad.LookAtFromPosition(pos, getClosestDest(pos).Position);
+
+		if (!pos.Equals(lookPos)) {
+			newRoad.LookAtFromPosition(pos, lookPos);
+		} else {
+			newRoad.Translate(pos);
+		}
 		RoadList.AddChild(newRoad);
 	}
 
@@ -105,22 +121,7 @@ public partial class RoadTest : Node3D
 	/* --------------------------- 
 	--------- Dest Funcs ---------
 	------------------------------ */
-	private Node3D getClosestDest(Vector3 pos) {
-		Node3D firstChild = (Node3D)DestList.GetChild(0);
-		float shortestDist = pos.DistanceTo(firstChild.Position);
 
-		Node3D result = firstChild;
-
-		for (int d = 1; d < DestList.GetChildren().Count; d++) {
-			Node3D curChild = (Node3D)DestList.GetChild(d);
-			float curDist = pos.DistanceTo(curChild.Position);
-			if (curDist < shortestDist) {
-				shortestDist = curDist;
-				result = curChild;
-			}
-		}
-		return result;
-	}
 	private void randomizeDests() {
 		Vector3 boundsSize = Bounds.GetAabb().Size;
 		for (int i = 0; i < 3; i++) {

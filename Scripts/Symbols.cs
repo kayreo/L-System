@@ -13,15 +13,18 @@ public struct RuleAttributes {
 
 // Struct for road attributes
 public struct RoadAttributes {
-	public RoadAttributes(Vector3 pos, Vector3 dir, float ang, float len) {
+	public RoadAttributes(Vector3 pos, Vector3 dir, float ang, float len, Vector3 lookPos) {
 		Position = pos;
 		Direction = dir;
 		Angle = ang;
 		Length = len;
+		LookPosition = lookPos;
 	}
 
 	public Vector3 Position { get; set; }
 	public Vector3 Direction { get; set; }
+	
+	public Vector3 LookPosition { get; set; }
 	public float Angle { get; set; }
 	public float Length { get; set; }
 
