@@ -16,7 +16,7 @@ albedo_color = Color(0.298039, 0.933333, 0.709804, 1)
 script = ExtResource("1_h3pjn")
 Road = ExtResource("2_12i0k")
 Destination = ExtResource("3_5hqd3")
-Iterations = 6
+Iterations = 1
 
 [node name="Bounds" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -114.811, 0)

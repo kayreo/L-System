@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Xml.XPath;
 
 public partial class LSystem : Node3D
 {
@@ -38,6 +40,7 @@ public partial class LSystem : Node3D
 	List<int> delays;
 	List<RuleAttributes> ruleAttrs;
 	List<RoadAttributes> roadAttrs;
+	List<Vector3> roadLocations;
 
 	// Init attributes
 	RuleAttributes initRuleAttr = new RuleAttributes();
@@ -50,14 +53,16 @@ public partial class LSystem : Node3D
 		DestList = dList;
 		RoadList = rList;
 		Road = roadScene;
+		delays = new List<int>();
+		ruleAttrs = new List<RuleAttributes>();
+		roadAttrs = new List<RoadAttributes>();
+		roadLocations = new List<Vector3>();	
 	}
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
-		delays = new List<int>();
-		ruleAttrs = new List<RuleAttributes>();
-		roadAttrs = new List<RoadAttributes>();
+
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -68,6 +73,7 @@ public partial class LSystem : Node3D
 
 	// Builds the list of symbols that will then be used to build the road system
 	public List<ISymbol> buildRoads(int iterations) {
+		roadLocations = new List<Vector3>();
 		delays = new List<int>();
 		ruleAttrs = new List<RuleAttributes>();
 		roadAttrs = new List<RoadAttributes>();
@@ -79,15 +85,16 @@ public partial class LSystem : Node3D
 		// local constraints generation
 		// Next rewrite calls local constraints, which culls or rewrites rules based on queries made in global goals
 		for (int i = 0; i < iterations; i++) {
-			// GD.Print("----------------------------------------------------");
-			// GD.Print("--------------------", "ITERATION: ", i, "--------------------");
-			// GD.Print("----------------------------------------------------");
+			GD.Print("----------------------------------------------------");
+			GD.Print("--------------------", "ITERATION: ", i, "--------------------");
+			GD.Print("----------------------------------------------------");
 			
 
 			localConstraints(generated);
-
+			//GD.Print("Generated: ", string.Join("\n\n", generated));
 			// Generate ideal successor for next iteration
 			generate(generated);
+			
 		}
 
         return generated;
@@ -114,8 +121,7 @@ public partial class LSystem : Node3D
 		}
 
 		// Store flattened
-		generated = results.SelectMany(subList => subList).ToList();
-		//GD.Print("Generated: ", string.Join("\n\n", generated));
+		generated = results.SelectMany(subList => subList).ToList();	
 	}
 
 	// Rewrites the given symbol based on its corresponding rule
@@ -205,10 +211,6 @@ public partial class LSystem : Node3D
 	// which returns an array of attributes (pDel[0-2] for branch delay
 	// and deletion, pRuleAttr[0-2] for rule-specific attributes and
 	// pRoadAttr[0-2] for road data, e.g. length, angle, etc).
-
-	// TODO: where do i call thisssssss how do i update symbol params
-	// can i put this in the rule for branch gen
-	// I do not think i understand this
 	
 	// At this set of attributes, generate a set of 3 delays, ruleAttrs, and roadAttrs
 	// Then, use these values back in genGoals
@@ -225,11 +227,11 @@ public partial class LSystem : Node3D
 		Vector3 nextDirR = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngR).Normalized();
 
 		// Adjust angle and dir for branch 1
-		float nextAngB1 = curRoadAttr.Angle + 1.57f;
+		float nextAngB1 = curRoadAttr.Angle + (float)GD.RandRange(0.0, 1.57);
 		Vector3 nextDirB1 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB1).Normalized();
 
 		// Adjust angle and dir for branch 2
-		float nextAngB2 = curRoadAttr.Angle - 1.57f;
+		float nextAngB2 = curRoadAttr.Angle - (float)GD.RandRange(0.0, 1.57);
 		Vector3 nextDirB2 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB2).Normalized();
 
 		// Generate delays
@@ -246,16 +248,17 @@ public partial class LSystem : Node3D
 
 		// Generate roadAttr
 		// Branch 1: Try branching to one direction
-		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position + new Vector3(50, 0, 50) * nextDirB1, nextDirB1, nextAngB1, 50f, getClosestDest(nextPos).Position);
+		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position + new Vector3(10, 0, 50) * nextDirB1, nextDirB1, nextAngB1, 50f, getClosestDest(nextPos).Position);
 		roadAttrs.Add(newBranch1);
 
 		// Branch 2: Try branching to another direction
-		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position + new Vector3(50, 0, 50) * nextDirB2, nextDirB2, nextAngB2, 50f, getClosestDest(nextPos).Position);
+		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position + new Vector3(10, 0, 50) * nextDirB2, nextDirB2, nextAngB2, 50f, getClosestDest(nextPos).Position);
 		roadAttrs.Add(newBranch2);
 
 		// Road: Try to move forward
 		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, 50f, getClosestDest(nextPos).Position);
 		roadAttrs.Add(newRoA);
+
 	}
 
 	// TODO: need to add state changing and param adjustment based on goals
@@ -264,8 +267,13 @@ public partial class LSystem : Node3D
 		for (int i = 0; i < axiom.Count; i++) {
 			if (axiom[i] is Symbol) {
 				Symbol castedSym = (Symbol)axiom[i];
-				if (castedSym.ID == "?I" && insertQuery(castedSym.RoadAttr)) {
-					castedSym.State = StateType.SUCCESS;
+				if (castedSym.ID == "?I") { 
+					if (insertQuery(castedSym.RoadAttr)) {
+						castedSym.State = StateType.SUCCESS;
+					} else {
+						castedSym.State = StateType.FAILURE;
+					}
+					axiom[i] = castedSym;
 				}
 				axiom[i] = castedSym;
 			} else if (axiom[i] is SymBranch) {
@@ -283,29 +291,38 @@ public partial class LSystem : Node3D
 	// Queries whether the road can be inserted
 	// checks for legal terrain, or if road will intersect with water, mountains, etc.
 	private bool insertQuery(RoadAttributes roadAttr) {
-		//GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition);
-		Road testRoad = (Road)Road.Instantiate();
-		testRoad.Scale = new Vector3(3, 3, 3);
-		Area3D d = (Area3D)testRoad.GetNode("Detection");
-		d.BodyEntered += getDetectionBodies;
-		if (!roadAttr.Position.Equals(roadAttr.LookPosition)) {
-			testRoad.LookAtFromPosition(roadAttr.Position, roadAttr.LookPosition);
-		} else {
-			testRoad.Translate(roadAttr.Position);
-		}
-		RoadList.AddChild(testRoad);
+		GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition + " With angle : " + roadAttr.Direction);
+		GD.Print("Road locs: " +  string.Join("\n", roadLocations));
 
-		foreach (Node item in d.GetOverlappingBodies()) {
-			GD.Print("Finding an object");
-			GD.Print("ITEM: " + ((Node3D)item).Position);
+		// Trying to put this road in
+		Vector3 startPos = roadAttr.Position - (roadAttr.Direction * new Vector3(5f, 0f, 25f));
+		Vector3 endPos = roadAttr.Position + (roadAttr.Direction * new Vector3(5f, 0f, 25f));
+		GD.Print("Start: " + startPos);
+		GD.Print("End: " + endPos);
+
+		foreach (Vector3 pos in roadLocations) {
+			// if current road overlaps with any position
+			if (isBetweenPos(startPos, endPos, pos)) {
+				GD.Print("inside existing road");
+				return false;
+			}
 		}
-		//RoadList.GetChild(RoadList.GetChildren().Count - 1).QueueFree();
+		roadLocations.Add(roadAttr.Position);
 		return true;
 	}
 
-	private void getDetectionBodies(Node3D body) {
-		GD.Print("Intersected");
-	}
+    public bool isBetweenPos(Vector3 pointA, Vector3 pointB, Vector3 pointC)
+    {
+        Vector3 AB = pointB - pointA;
+        Vector3 AC = pointC - pointA;
+
+        if (AB.Cross(AC).Length() > 0.001f) {
+            return false; 
+        }
+
+        return true;
+    }
+
 
 	// Get the closest destination node the road is near
 	private Node3D getClosestDest(Vector3 pos) {
@@ -324,6 +341,7 @@ public partial class LSystem : Node3D
 		}
 		return result;
 	}
+
 
 	// TODO: branches much have a minimum angle difference (ie, road branches must be 45 degrees apart)
 	// Closest destination query, returns yaw needed to face thingy
