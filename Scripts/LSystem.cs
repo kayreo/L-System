@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public partial class LSystem : Node3D
+public partial class LSystem
 {
 	public Dictionary<String, Rule> Rules = new Dictionary<String, Rule>
 	{
@@ -42,7 +42,7 @@ public partial class LSystem : Node3D
 
 	// Init attributes
 	RuleAttributes initRuleAttr = new RuleAttributes();
-	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, 0f, Vector3.Zero);
+	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, Mathf.DegToRad(90f), Mathf.DegToRad(95f), new Vector3(50.0f, 0.0f, 50.0f), Vector3.Zero);
 
 	// begin with a basic road symbol and an insertion query to determine if legal place to put road
 	public List<ISymbol> generated;
@@ -56,18 +56,6 @@ public partial class LSystem : Node3D
 		roadAttrs = new List<RoadAttributes>();
 		roadLocations = new List<Vector3>();	
         roadDirections = new List<Vector3>();
-	}
-
-	// Called when the node enters the scene tree for the first time.
-	public override void _Ready()
-	{
-
-	}
-
-	// Called every frame. 'delta' is the elapsed time since the previous frame.
-	public override void _Process(double delta)
-	{
-
 	}
 
 	// Builds the list of symbols that will then be used to build the road system
@@ -85,9 +73,9 @@ public partial class LSystem : Node3D
 		// local constraints generation
 		// Next rewrite calls local constraints, which culls or rewrites rules based on queries made in global goals
 		for (int i = 0; i < iterations; i++) {
-			GD.Print("----------------------------------------------------");
-			GD.Print("--------------------", "ITERATION: ", i, "--------------------");
-			GD.Print("----------------------------------------------------");
+			// GD.Print("----------------------------------------------------");
+			// GD.Print("--------------------", "ITERATION: ", i, "--------------------");
+			// GD.Print("----------------------------------------------------");
 			
 
 			localConstraints(generated);
@@ -213,25 +201,25 @@ public partial class LSystem : Node3D
 		roadAttrs.Clear();
 
 		// Increment position to next position
-		Vector3 nextPos = curRoadAttr.Position + new Vector3(50, 0, 50) * curRoadAttr.Direction;
+		Vector3 nextPos = curRoadAttr.Position + curRoadAttr.RoadSize * curRoadAttr.Direction;
 
 		// Adjust angle and dir for road
 		float nextAngR = getClosestDestAngle(nextPos, curRoadAttr.Direction);
 		Vector3 nextDirR = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngR).Normalized();
 
 		// Adjust angle and dir for branch 1
-		float nextAngB1 = curRoadAttr.Angle + (float)GD.RandRange(0.0, 1.57);
+		float nextAngB1 = curRoadAttr.CurAngle + (float)GD.RandRange(curRoadAttr.MinAngle, curRoadAttr.MaxAngle);
 		Vector3 nextDirB1 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB1).Normalized();
 
 		// Adjust angle and dir for branch 2
-		float nextAngB2 = curRoadAttr.Angle - (float)GD.RandRange(0.0, 1.57);
+		float nextAngB2 = curRoadAttr.CurAngle - (float)GD.RandRange(curRoadAttr.MinAngle, curRoadAttr.MaxAngle);
 		Vector3 nextDirB2 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB2).Normalized();
 
 		// Generate delays
 		// arbitrary rn
 		delays.Add(3);
-		delays.Add(20);
-		delays.Add(0);
+		delays.Add(3);
+		delays.Add(2);
 
 		// Generate ruleAttr
 		for (int i = 0; i < 3; i++) {
@@ -241,15 +229,15 @@ public partial class LSystem : Node3D
 
 		// Generate roadAttr
 		// Branch 1: Try branching to one direction
-		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position + new Vector3(10, 0, 50) * nextDirB1, nextDirB1, nextAngB1, 50f, getClosestDest(nextPos).Position);
+		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1, nextDirB1, nextAngB1, curRoadAttr.MinAngle, curRoadAttr.MaxAngle, curRoadAttr.RoadSize, getClosestDest(nextPos).Position);
 		roadAttrs.Add(newBranch1);
 
 		// Branch 2: Try branching to another direction
-		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position + new Vector3(10, 0, 50) * nextDirB2, nextDirB2, nextAngB2, 50f, getClosestDest(nextPos).Position);
+		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2, nextDirB2, nextAngB2, curRoadAttr.MinAngle, curRoadAttr.MaxAngle, curRoadAttr.RoadSize, getClosestDest(nextPos).Position);
 		roadAttrs.Add(newBranch2);
 
 		// Road: Try to move forward
-		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, 50f, getClosestDest(nextPos).Position);
+		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, curRoadAttr.MinAngle, curRoadAttr.MaxAngle, curRoadAttr.RoadSize, getClosestDest(nextPos).Position);
 		roadAttrs.Add(newRoA);
 
 	}
@@ -284,69 +272,29 @@ public partial class LSystem : Node3D
 	// Queries whether the road can be inserted
 	// checks for legal terrain, or if road will intersect with water, mountains, etc.
 	private bool insertQuery(RoadAttributes roadAttr) {
-		GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition + " With angle : " + roadAttr.Direction);
+		//GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition + " With angle : " + roadAttr.Direction);
 		//GD.Print("Road locs: " +  string.Join("\n", roadLocations));
 
 		// Trying to put this road in
 		Vector3 startPos = roadAttr.Position - (roadAttr.Direction * new Vector3(25f, 0f, 25f));
 		Vector3 endPos = roadAttr.Position + (roadAttr.Direction * new Vector3(25f, 0f, 25f));
-		GD.Print("Start: " + startPos);
-		GD.Print("End: " + endPos);
 
 		for (int i = 0; i < roadLocations.Count; i++) {
             Vector3 pos = roadLocations[i];
-            GD.Print("Checking: " + pos);
             Vector3 roadStartPos = pos - (roadDirections[i] * new Vector3(25f, 0f, 25f));
             Vector3 roadEndPos = pos + (roadDirections[i] * new Vector3(25f, 0f, 25f));
-			// if current road overlaps with any position
-			if (DoSegmentsIntersect(startPos, endPos, roadStartPos, roadEndPos)) {
-				GD.Print("inside existing road");
+			// Same position, or near position from a certain threshold
+			if ((roadAttr.Position - pos).Length() <= 25.0f) {
+				//GD.Print("Invalid location");
 				return false;
 			}
 		}
 		roadLocations.Add(roadAttr.Position);
         roadDirections.Add(roadAttr.Direction);
 		return true;
+		
 	}
 
-    // Function to check if two 3D line segments (A1-A2 and B1-B2) intersect
-    public bool DoSegmentsIntersect(Vector3 A1, Vector3 A2, Vector3 B1, Vector3 B2)
-    {
-        Vector3 intersection;
-        Vector3 d1 = A2 - A1;  // Direction vector of the first line
-        Vector3 d2 = B2 - B1;  // Direction vector of the second line
-
-        // Cross product of the direction vectors (d1 and d2)
-        Vector3 cross = d1.Cross(d2);
-
-        // If the cross product is close to zero, the lines are parallel (no intersection)
-        if (cross.Length() < 0.0001f)
-        {
-            intersection = Vector3.Zero;
-            return false;
-        }
-
-        // Calculate the vector between the start points of the segments
-        Vector3 r = B1 - A1;
-
-        // Solve for the intersection parameter t (for the first line segment)
-        float t = r.Cross(d2).Length() / cross.Length();
-
-        // Solve for the intersection parameter s (for the second line segment)
-        float s = r.Cross(d1).Length() / cross.Length();
-
-        // If t and s are between 0 and 1, the line segments intersect within their bounds
-        if (t >= 0 && t <= 1 && s >= 0 && s <= 1)
-        {
-            // If they intersect, calculate the intersection point
-            intersection = A1 + t * d1;
-            GD.Print("Intersection at: " + intersection);
-            return true;
-        }
-
-        intersection = Vector3.Zero;
-        return false;
-    }
 
 	// Get the closest destination node the road is near
 	private Node3D getClosestDest(Vector3 pos) {

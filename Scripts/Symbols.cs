@@ -13,11 +13,13 @@ public struct RuleAttributes {
 
 // Struct for road attributes
 public struct RoadAttributes {
-	public RoadAttributes(Vector3 pos, Vector3 dir, float ang, float len, Vector3 lookPos) {
+	public RoadAttributes(Vector3 pos, Vector3 dir, float curAng, float maxAng, float minAng, Vector3 roadSize, Vector3 lookPos) {
 		Position = pos;
 		Direction = dir;
-		Angle = ang;
-		Length = len;
+		CurAngle = curAng;
+		MaxAngle = maxAng;
+		MinAngle = minAng;
+		RoadSize = roadSize;
 		LookPosition = lookPos;
 	}
 
@@ -25,10 +27,13 @@ public struct RoadAttributes {
 	public Vector3 Direction { get; set; }
 	
 	public Vector3 LookPosition { get; set; }
-	public float Angle { get; set; }
-	public float Length { get; set; }
+	public float CurAngle { get; set; }
+	public float MaxAngle { get; set; }
 
-	public override string ToString() => $"(Pos:{Position}, Dir:{Direction}, Ang:{Angle}, Len:{Length})";
+	public float MinAngle { get; set; }
+	public Vector3 RoadSize { get; set; }
+
+	public override string ToString() => $"(Pos:{Position}, Dir:{Direction}, Angle: {CurAngle}, Angle range:{MinAngle} - {MaxAngle}, Road:{RoadSize})";
 }
 
 public enum StateType {
