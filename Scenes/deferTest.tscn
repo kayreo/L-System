@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://b0t7mqg45lrpt"]
+
+[ext_resource type="Script" path="res://Scripts/DeferTest.cs" id="1_rude4"]
+
+[node name="deferTest" type="Node3D"]
+script = ExtResource("1_rude4")

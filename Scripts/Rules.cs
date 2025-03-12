@@ -248,7 +248,7 @@ class RuleIDel : Rule {
 ------------------------------ */
 // If you see an A symbol keep it
 class RuleA : Rule {
-    private String mySymbol = "?I";
+    private String mySymbol = "A";
 	private int del = -1;
 
     private RoadAttributes roadAttr;

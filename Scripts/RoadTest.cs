@@ -124,7 +124,7 @@ public partial class RoadTest : Node3D
 
 	private void randomizeDests() {
 		Vector3 boundsSize = Bounds.GetAabb().Size;
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < 1; i++) {
 			Vector3 placePos = new Vector3(GD.RandRange((int)-boundsSize.X/3, (int)boundsSize.X/3), 0, GD.RandRange((int)-boundsSize.Z/3, (int)boundsSize.Z/3));
 			addDest(placePos);
 		}

@@ -1,10 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Linq;
-using System.Threading.Tasks;
-using System.Xml.XPath;
 
 public partial class LSystem : Node3D
 {
@@ -41,6 +38,7 @@ public partial class LSystem : Node3D
 	List<RuleAttributes> ruleAttrs;
 	List<RoadAttributes> roadAttrs;
 	List<Vector3> roadLocations;
+    List<Vector3> roadDirections;
 
 	// Init attributes
 	RuleAttributes initRuleAttr = new RuleAttributes();
@@ -57,6 +55,7 @@ public partial class LSystem : Node3D
 		ruleAttrs = new List<RuleAttributes>();
 		roadAttrs = new List<RoadAttributes>();
 		roadLocations = new List<Vector3>();	
+        roadDirections = new List<Vector3>();
 	}
 
 	// Called when the node enters the scene tree for the first time.
@@ -74,6 +73,7 @@ public partial class LSystem : Node3D
 	// Builds the list of symbols that will then be used to build the road system
 	public List<ISymbol> buildRoads(int iterations) {
 		roadLocations = new List<Vector3>();
+        roadDirections = new List<Vector3>();
 		delays = new List<int>();
 		ruleAttrs = new List<RuleAttributes>();
 		roadAttrs = new List<RoadAttributes>();
@@ -91,12 +91,11 @@ public partial class LSystem : Node3D
 			
 
 			localConstraints(generated);
-			//GD.Print("Generated: ", string.Join("\n\n", generated));
 			// Generate ideal successor for next iteration
 			generate(generated);
 			
 		}
-
+		//GD.Print("Generated: ", string.Join("\n\n", generated));
         return generated;
 	}
 
@@ -143,12 +142,6 @@ public partial class LSystem : Node3D
 					if (genCast.ID == "?I") {
 						// Pass inquery's state to road to check
 						castedSym.State = genCast.State;
-					}
-				}
-				// Check if an ?I query has an R symbol to the left
-				else if (castedSym.ID == "?I" && axiom[i - 1] is Symbol) {
-					Symbol genCast = (Symbol)axiom[i - 1];
-					if (genCast.ID == "R") {
 					}
 				}
 				if (curRule.checkSymbol(castedSym) && curRule.checkCond()) {
@@ -292,37 +285,68 @@ public partial class LSystem : Node3D
 	// checks for legal terrain, or if road will intersect with water, mountains, etc.
 	private bool insertQuery(RoadAttributes roadAttr) {
 		GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition + " With angle : " + roadAttr.Direction);
-		GD.Print("Road locs: " +  string.Join("\n", roadLocations));
+		//GD.Print("Road locs: " +  string.Join("\n", roadLocations));
 
 		// Trying to put this road in
-		Vector3 startPos = roadAttr.Position - (roadAttr.Direction * new Vector3(5f, 0f, 25f));
-		Vector3 endPos = roadAttr.Position + (roadAttr.Direction * new Vector3(5f, 0f, 25f));
+		Vector3 startPos = roadAttr.Position - (roadAttr.Direction * new Vector3(25f, 0f, 25f));
+		Vector3 endPos = roadAttr.Position + (roadAttr.Direction * new Vector3(25f, 0f, 25f));
 		GD.Print("Start: " + startPos);
 		GD.Print("End: " + endPos);
 
-		foreach (Vector3 pos in roadLocations) {
+		for (int i = 0; i < roadLocations.Count; i++) {
+            Vector3 pos = roadLocations[i];
+            GD.Print("Checking: " + pos);
+            Vector3 roadStartPos = pos - (roadDirections[i] * new Vector3(25f, 0f, 25f));
+            Vector3 roadEndPos = pos + (roadDirections[i] * new Vector3(25f, 0f, 25f));
 			// if current road overlaps with any position
-			if (isBetweenPos(startPos, endPos, pos)) {
+			if (DoSegmentsIntersect(startPos, endPos, roadStartPos, roadEndPos)) {
 				GD.Print("inside existing road");
 				return false;
 			}
 		}
 		roadLocations.Add(roadAttr.Position);
+        roadDirections.Add(roadAttr.Direction);
 		return true;
 	}
 
-    public bool isBetweenPos(Vector3 pointA, Vector3 pointB, Vector3 pointC)
+    // Function to check if two 3D line segments (A1-A2 and B1-B2) intersect
+    public bool DoSegmentsIntersect(Vector3 A1, Vector3 A2, Vector3 B1, Vector3 B2)
     {
-        Vector3 AB = pointB - pointA;
-        Vector3 AC = pointC - pointA;
+        Vector3 intersection;
+        Vector3 d1 = A2 - A1;  // Direction vector of the first line
+        Vector3 d2 = B2 - B1;  // Direction vector of the second line
 
-        if (AB.Cross(AC).Length() > 0.001f) {
-            return false; 
+        // Cross product of the direction vectors (d1 and d2)
+        Vector3 cross = d1.Cross(d2);
+
+        // If the cross product is close to zero, the lines are parallel (no intersection)
+        if (cross.Length() < 0.0001f)
+        {
+            intersection = Vector3.Zero;
+            return false;
         }
 
-        return true;
-    }
+        // Calculate the vector between the start points of the segments
+        Vector3 r = B1 - A1;
 
+        // Solve for the intersection parameter t (for the first line segment)
+        float t = r.Cross(d2).Length() / cross.Length();
+
+        // Solve for the intersection parameter s (for the second line segment)
+        float s = r.Cross(d1).Length() / cross.Length();
+
+        // If t and s are between 0 and 1, the line segments intersect within their bounds
+        if (t >= 0 && t <= 1 && s >= 0 && s <= 1)
+        {
+            // If they intersect, calculate the intersection point
+            intersection = A1 + t * d1;
+            GD.Print("Intersection at: " + intersection);
+            return true;
+        }
+
+        intersection = Vector3.Zero;
+        return false;
+    }
 
 	// Get the closest destination node the road is near
 	private Node3D getClosestDest(Vector3 pos) {

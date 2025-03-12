@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bu75rewhdb6jx"]
+
+[ext_resource type="Script" path="res://Scripts/LSystem.cs" id="1_jno2b"]
+
+[node name="LSystem" type="Node3D"]
+script = ExtResource("1_jno2b")
