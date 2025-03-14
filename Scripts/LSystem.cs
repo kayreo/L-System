@@ -41,8 +41,8 @@ public partial class LSystem
     List<Vector3> roadDirections;
 
 	// Init attributes
-	RuleAttributes initRuleAttr = new RuleAttributes();
-	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, Mathf.DegToRad(90f), Mathf.DegToRad(95f), new Vector3(50.0f, 0.0f, 50.0f), Vector3.Zero);
+	RuleAttributes initRuleAttr = new RuleAttributes(Mathf.DegToRad(90f), Mathf.DegToRad(95f));
+	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, new Vector3(50.0f, 0.0f, 50.0f), Vector3.Zero);
 
 	// begin with a basic road symbol and an insertion query to determine if legal place to put road
 	public List<ISymbol> generated;
@@ -208,18 +208,18 @@ public partial class LSystem
 		Vector3 nextDirR = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngR).Normalized();
 
 		// Adjust angle and dir for branch 1
-		float nextAngB1 = curRoadAttr.CurAngle + (float)GD.RandRange(curRoadAttr.MinAngle, curRoadAttr.MaxAngle);
+		float nextAngB1 = curRoadAttr.CurAngle + (float)GD.RandRange(curRuleAttr.MinAngle, curRuleAttr.MaxAngle);
 		Vector3 nextDirB1 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB1).Normalized();
 
 		// Adjust angle and dir for branch 2
-		float nextAngB2 = curRoadAttr.CurAngle - (float)GD.RandRange(curRoadAttr.MinAngle, curRoadAttr.MaxAngle);
+		float nextAngB2 = curRoadAttr.CurAngle - (float)GD.RandRange(curRuleAttr.MinAngle, curRuleAttr.MaxAngle);
 		Vector3 nextDirB2 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB2).Normalized();
 
 		// Generate delays
 		// arbitrary rn
 		delays.Add(3);
 		delays.Add(3);
-		delays.Add(2);
+		delays.Add(1);
 
 		// Generate ruleAttr
 		for (int i = 0; i < 3; i++) {
@@ -229,15 +229,15 @@ public partial class LSystem
 
 		// Generate roadAttr
 		// Branch 1: Try branching to one direction
-		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1, nextDirB1, nextAngB1, curRoadAttr.MinAngle, curRoadAttr.MaxAngle, curRoadAttr.RoadSize, getClosestDest(nextPos).Position);
+		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1, nextDirB1, nextAngB1, curRoadAttr.RoadSize, getClosestDest(nextPos).Position);
 		roadAttrs.Add(newBranch1);
 
 		// Branch 2: Try branching to another direction
-		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2, nextDirB2, nextAngB2, curRoadAttr.MinAngle, curRoadAttr.MaxAngle, curRoadAttr.RoadSize, getClosestDest(nextPos).Position);
+		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2, nextDirB2, nextAngB2, curRoadAttr.RoadSize, getClosestDest(nextPos).Position);
 		roadAttrs.Add(newBranch2);
 
 		// Road: Try to move forward
-		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, curRoadAttr.MinAngle, curRoadAttr.MaxAngle, curRoadAttr.RoadSize, getClosestDest(nextPos).Position);
+		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, curRoadAttr.RoadSize, getClosestDest(nextPos).Position);
 		roadAttrs.Add(newRoA);
 
 	}

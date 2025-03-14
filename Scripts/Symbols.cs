@@ -6,19 +6,24 @@ using System.Dynamic;
 
 // Struct for rule attributes
 public struct RuleAttributes {
-	public RuleAttributes() {
+	public RuleAttributes(float minAng, float maxAng) {
+
+		MinAngle = minAng;
+		MaxAngle = maxAng;
 		
 	}
+public float MinAngle { get; set; }
+	public float MaxAngle { get; set; }
+	
+	public override string ToString() => $"(Angle range:{MinAngle} - {MaxAngle})";
 }
 
 // Struct for road attributes
 public struct RoadAttributes {
-	public RoadAttributes(Vector3 pos, Vector3 dir, float curAng, float maxAng, float minAng, Vector3 roadSize, Vector3 lookPos) {
+	public RoadAttributes(Vector3 pos, Vector3 dir, float curAng, Vector3 roadSize, Vector3 lookPos) {
 		Position = pos;
 		Direction = dir;
 		CurAngle = curAng;
-		MaxAngle = maxAng;
-		MinAngle = minAng;
 		RoadSize = roadSize;
 		LookPosition = lookPos;
 	}
@@ -28,12 +33,9 @@ public struct RoadAttributes {
 	
 	public Vector3 LookPosition { get; set; }
 	public float CurAngle { get; set; }
-	public float MaxAngle { get; set; }
-
-	public float MinAngle { get; set; }
 	public Vector3 RoadSize { get; set; }
 
-	public override string ToString() => $"(Pos:{Position}, Dir:{Direction}, Angle: {CurAngle}, Angle range:{MinAngle} - {MaxAngle}, Road:{RoadSize})";
+	public override string ToString() => $"(Pos:{Position}, Dir:{Direction}, Angle: {CurAngle}, Road:{RoadSize})";
 }
 
 public enum StateType {
