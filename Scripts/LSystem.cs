@@ -229,11 +229,11 @@ public partial class LSystem
 
 		// Generate roadAttr
 		// Branch 1: Try branching to one direction
-		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1, nextDirB1, nextAngB1, curRoadAttr.RoadSize, getClosestDest(nextPos).Position);
+		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1, nextDirB1, nextAngB1, curRoadAttr.RoadSize, curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1 * 2);
 		roadAttrs.Add(newBranch1);
 
 		// Branch 2: Try branching to another direction
-		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2, nextDirB2, nextAngB2, curRoadAttr.RoadSize, getClosestDest(nextPos).Position);
+		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2, nextDirB2, nextAngB2, curRoadAttr.RoadSize, curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2 * 2);
 		roadAttrs.Add(newBranch2);
 
 		// Road: Try to move forward
