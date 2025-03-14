@@ -274,17 +274,18 @@ public partial class LSystem
 	private bool insertQuery(RoadAttributes roadAttr) {
 		//GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition + " With angle : " + roadAttr.Direction);
 		//GD.Print("Road locs: " +  string.Join("\n", roadLocations));
-
-		// Trying to put this road in
 		Vector3 startPos = roadAttr.Position - (roadAttr.Direction * new Vector3(25f, 0f, 25f));
 		Vector3 endPos = roadAttr.Position + (roadAttr.Direction * new Vector3(25f, 0f, 25f));
 
+
 		for (int i = 0; i < roadLocations.Count; i++) {
             Vector3 pos = roadLocations[i];
-            Vector3 roadStartPos = pos - (roadDirections[i] * new Vector3(25f, 0f, 25f));
-            Vector3 roadEndPos = pos + (roadDirections[i] * new Vector3(25f, 0f, 25f));
+			Vector3 dir = roadDirections[i];
 			// Same position, or near position from a certain threshold
-			if ((roadAttr.Position - pos).Length() <= 25.0f) {
+			Vector3 intersectPos;
+			if (lineIntersectsLine(roadAttr.Position, roadAttr.Direction, pos, dir, out intersectPos) && 
+					intersectPos > startPos &&
+					intersectPos < endPos) {
 				//GD.Print("Invalid location");
 				return false;
 			}
@@ -293,6 +294,19 @@ public partial class LSystem
         roadDirections.Add(roadAttr.Direction);
 		return true;
 		
+	}
+
+	static bool lineIntersectsLine(Vector3 pFromA, Vector3 pDirA, Vector3 pFromB, Vector3 pDirB, out Vector3 rResult) {
+		// See http://paulbourke.net/geometry/pointlineplane/
+		float denom = pDirB.Z * pDirA.X - pDirB.X * pDirA.Z;
+		rResult = Vector3.Inf;
+		if (denom <= 0.00001f) { // Parallel?
+			return false;
+		}
+		Vector3 v = pFromA - pFromB;
+		float t = (pDirB.X * v.Z - pDirB.Z * v.X) / denom;
+		rResult = pFromA + t * pDirA;
+		return true;
 	}
 
 
