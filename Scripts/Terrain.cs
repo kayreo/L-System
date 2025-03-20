@@ -6,14 +6,14 @@ using System;
 using Godot.Collections;
 using System.Linq;
 
-[Tool]
+//[Tool]
 public partial class Terrain : MeshInstance3D
 {
 	private float _size = 256.0f;
 
 	private int _resolution = 32;
 
-	private FastNoiseLite _noise;
+	private FastNoiseLite _noise = new FastNoiseLite();
 
 	private float _height = 64.0f;
 

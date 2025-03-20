@@ -39,6 +39,7 @@ public partial class LSystem
 	List<RoadAttributes> roadAttrs;
 	List<Vector3> roadLocations;
     List<Vector3> roadDirections;
+	Mesh heightMap;
 
 	// Init attributes
 	RuleAttributes initRuleAttr = new RuleAttributes(Mathf.DegToRad(90f), Mathf.DegToRad(95f));
@@ -47,10 +48,11 @@ public partial class LSystem
 	// begin with a basic road symbol and an insertion query to determine if legal place to put road
 	public List<ISymbol> generated;
 
-	public LSystem(Node3D rList, Node3D dList, PackedScene roadScene) {
+	public LSystem(Node3D rList, Node3D dList, PackedScene roadScene, Mesh hm) {
 		DestList = dList;
 		RoadList = rList;
 		Road = roadScene;
+		heightMap = hm;
 		delays = new List<int>();
 		ruleAttrs = new List<RuleAttributes>();
 		roadAttrs = new List<RoadAttributes>();
@@ -274,9 +276,32 @@ public partial class LSystem
 	private bool insertQuery(RoadAttributes roadAttr) {
 		//GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition + " With angle : " + roadAttr.Direction);
 		//GD.Print("Road locs: " +  string.Join("\n", roadLocations));
+		Vector3 curPos = roadAttr.Position;
+		float shortestDist = float.MaxValue;
+		Vector3 checkHeight = Vector3.Zero;
+
 		Vector3 startPos = roadAttr.Position - (roadAttr.Direction * new Vector3(25f, 0f, 25f));
 		Vector3 endPos = roadAttr.Position + (roadAttr.Direction * new Vector3(25f, 0f, 25f));
 
+		// Check if a road is valid and can be placed here
+		// To get vertices of surface: heightMap.SurfaceGetArrays(0)[0]
+		Godot.Collections.Array heights = (Godot.Collections.Array)heightMap.SurfaceGetArrays(0)[0];
+		foreach (Variant h in heights) {
+			Vector3 curH = (Vector3)h;
+			float dist = curPos.DistanceSquaredTo(curH);
+			if (dist < shortestDist) {
+				shortestDist = dist;
+				checkHeight = curH;
+			}
+		}
+
+		GD.Print("Height: " + checkHeight);
+		GD.Print("Cur pos: " + curPos);
+		// heightmap intersects with cur position road, need to be a bridge
+		if (checkHeight.Y > curPos.Y) {
+			GD.Print("TOO TALL!!!!!");
+			return false;
+		}
 
 		for (int i = 0; i < roadLocations.Count; i++) {
             Vector3 pos = roadLocations[i];

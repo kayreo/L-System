@@ -1,9 +1,5 @@
 using Godot;
-using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Linq;
-using System.Xml.XPath;
 
 public partial class RoadTest : Node3D
 {
@@ -23,7 +19,17 @@ public partial class RoadTest : Node3D
 
 	public MeshInstance3D Bounds;
 
+	public Mesh TerrainHeight;
+
 	public LSystem L;
+
+	/*
+	TODO: add terrain
+	add more functionality in godot editor
+		- WHAT DID I WANNA ADD???
+	add bridges (and maybe tunnels) to l system (new symbol, new instantiated scene)
+		- detect terrain height, bridge spawn when above threshold
+	*/
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
@@ -32,10 +38,10 @@ public partial class RoadTest : Node3D
 		RoadList = GetNode<Node3D>("Roads");
 		DestList = GetNode<Node3D>("Destinations");
 		Bounds = GetNode<MeshInstance3D>("Bounds");
-
+		TerrainHeight = GetNode<Node3D>("Terrain").GetNode<StaticBody3D>("StaticBody3D").GetNode<MeshInstance3D>("Terrain").Mesh;
 		// Other setup
 		GD.Randomize();
-		L = new LSystem(RoadList, DestList, Road);
+		L = new LSystem(RoadList, DestList, Road, TerrainHeight);
 
 		randomizeDests();
 
