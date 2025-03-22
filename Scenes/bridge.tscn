@@ -1,0 +1,27 @@
+[gd_scene load_steps=5 format=3 uid="uid://cylpflspri8do"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_7677d"]
+top_radius = 10.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xuqhx"]
+albedo_color = Color(0.19905, 0.193628, 0.186226, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_qk47y"]
+material = SubResource("StandardMaterial3D_xuqhx")
+size = Vector2(10, 50)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_m446o"]
+
+[node name="Bridge" type="Node3D"]
+
+[node name="StaticBody3D" type="StaticBody3D" parent="."]
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="StaticBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -18.141)
+mesh = SubResource("CylinderMesh_7677d")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D"]
+mesh = SubResource("PlaneMesh_qk47y")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
+shape = SubResource("BoxShape3D_m446o")

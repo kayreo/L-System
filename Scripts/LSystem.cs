@@ -15,8 +15,6 @@ public partial class LSystem
 		{"RuleIDel", new RuleIDel()}
 	};
 
-	public PackedScene Road { get; set; }
-
 	public Node3D RoadList;
 
 	public Node3D DestList;
@@ -55,10 +53,9 @@ public partial class LSystem
 	// begin with a basic road symbol and an insertion query to determine if legal place to put road
 	public List<ISymbol> generated;
 
-	public LSystem(Node3D rList, Node3D dList, PackedScene roadScene, Mesh hm, string Rule, float seaLevel) {
+	public LSystem(Node3D rList, Node3D dList, Mesh hm, string Rule, float seaLevel) {
 		DestList = dList;
 		RoadList = rList;
-		Road = roadScene;
 		heightMap = hm;
 		SeaLevel = seaLevel;
 		if (rules.ContainsKey(Rule)) {
@@ -135,7 +132,7 @@ public partial class LSystem
 			if (sym is Symbol) {				
 				// General rewrites
 				Symbol castedSym = (Symbol) sym;
-				if (castedSym.ID == "A") {
+				if (castedSym.ID == "A" || castedSym.ID == "Br" || castedSym.ID == "T") {
 					result = new List<ISymbol>{castedSym};
 				}
 				// Check LC and RC
@@ -222,12 +219,12 @@ public partial class LSystem
 
 		// If the next position hits terrain, turn it into a tunnel
 		if (doesGroundIntersect(nextPos)) {
-			GD.Print("Need a tunnel");
+			//GD.Print("Need a tunnel");
 			nextRoadType = RoadType.TUNNEL;
 		}
 		// If the next position is over water, turn it into a bridge
 		else if (isAboveWater(nextPos)) {
-			GD.Print("Need a bridge");
+			//GD.Print("Need a bridge");
 			nextRoadType = RoadType.BRIDGE;
 		}
 
@@ -317,10 +314,6 @@ public partial class LSystem
 	// Check if the current position is above sea level and not intersecting with land
 	private bool isAboveWater(Vector3 pos) {
 		Vector3 checkSurface = getNearestSurface(pos);
-		GD.Print("Water check");
-		GD.Print("Checking surface: " + checkSurface);
-		GD.Print("Checking pos: " + pos);
-
 		return pos.Y >= SeaLevel;
 	}
 
@@ -330,9 +323,7 @@ public partial class LSystem
 		// To get vertices of surface: heightMap.SurfaceGetArrays(0)[0]
 		// Get the nearest surface
 		Vector3 checkHeight = getNearestSurface(pos);
-		GD.Print("Ground check");
-		GD.Print("Height: " + checkHeight);
-		GD.Print("Cur pos: " + pos);
+
 		// heightmap intersects with cur position road, need to be a tunnel
 		if (checkHeight.Y > pos.Y) {
 			return true;
@@ -367,34 +358,34 @@ public partial class LSystem
 		
 	}
 
+	/*
+	float denom = pDirB.Z * pDirA.X - pDirB.X * pDirA.Z; 
+			rResult = Vector3.Inf;
+			if (denom <= 0.00001f) { // Parallel?
+				return false;
+			}
+			Vector3 v = pFromA - pFromB;
+			float t = (pDirB.X * v.Z - pDirB.Z * v.X) / denom;
+			rResult = pFromA + t * pDirA;
+			return true;
+	*/
 	static bool lineIntersectsLine(Vector3 pFromA, Vector3 pDirA, Vector3 pFromB, Vector3 pDirB, out Vector3 rResult) {
 		// See http://paulbourke.net/geometry/pointlineplane/
 		rResult = Vector3.Inf;
 
-		// Compute the cross product to determine if the lines are parallel
+		// Compute the cross product to check if the lines are parallel
 		Vector3 crossDir = pDirA.Cross(pDirB);
-		float denom = crossDir.LengthSquared();
+		float denom = crossDir.LengthSquared(); // Equivalent to determinant in 3D
 
 		if (denom <= 0.00001f) { // Parallel or nearly parallel?
 			return false;
 		}
 
-		// Solve for t and u using a determinant approach
-		Vector3 v = pFromB - pFromA;
+		// Solve for t using determinant-based approach
+		Vector3 v = pFromA - pFromB;
 		float t = v.Cross(pDirB).Dot(crossDir) / denom;
-		float u =  v.Cross(pDirA).Dot(crossDir) / denom;
 
-		// Compute the intersection points on both lines
-		Vector3 pointA = pFromA + t * pDirA;
-		Vector3 pointB = pFromB + u * pDirB;
-
-		// Check if the intersection points are close enough (due to floating point precision)
-		if ((pointA - pointB).LengthSquared() > 0.00001f)
-		{
-			return false; // The lines are skew, meaning they don't truly intersect
-		}
-
-		rResult = pointA; // They intersect at this point
+		rResult = pFromA + t * pDirA;
 		return true;
 	}
 

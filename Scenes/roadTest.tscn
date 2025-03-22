@@ -1,8 +1,9 @@
-[gd_scene load_steps=12 format=4 uid="uid://63rl4s70duft"]
+[gd_scene load_steps=13 format=4 uid="uid://63rl4s70duft"]
 
 [ext_resource type="Script" path="res://Scripts/RoadTest.cs" id="1_h3pjn"]
 [ext_resource type="PackedScene" uid="uid://b4jq2j8wk8veh" path="res://Scenes/road.tscn" id="2_12i0k"]
 [ext_resource type="PackedScene" uid="uid://p86428lxwsrl" path="res://Scenes/popDensity.tscn" id="3_5hqd3"]
+[ext_resource type="PackedScene" uid="uid://cylpflspri8do" path="res://Scenes/bridge.tscn" id="3_6jw6y"]
 [ext_resource type="PackedScene" uid="uid://bjvv0k48qanhu" path="res://Scenes/terrain.tscn" id="4_8pg8q"]
 [ext_resource type="PackedScene" uid="uid://qhkd1nykrcfm" path="res://Scenes/player.tscn" id="5_2y8xt"]
 
@@ -36,6 +37,7 @@ size = Vector3(1024, 15, 1024)
 [node name="roadTest" type="Node3D"]
 script = ExtResource("1_h3pjn")
 Road = ExtResource("2_12i0k")
+Bridge = ExtResource("3_6jw6y")
 Destination = ExtResource("3_5hqd3")
 Iterations = 1
 

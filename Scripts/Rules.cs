@@ -57,9 +57,16 @@ class RuleRBranch : Rule {
     }
 
     public override List<ISymbol> genOutput() {
+        string nextSymbol = "A";
+
+        if (savedAttr.BuildRoadType == RoadType.BRIDGE) {
+            nextSymbol = "Br";
+        } else if (savedAttr.BuildRoadType == RoadType.TUNNEL) {
+            nextSymbol = "T";
+        }
         //Two branch modules, B and a road module R plus the insertion query ?I are created.
         List<ISymbol> result = new List<ISymbol>{
-            new Symbol("A", 0, new RuleAttributes(), savedAttr, StateType.UNASSIGNED),
+            new Symbol(nextSymbol, 0, new RuleAttributes(), savedAttr, StateType.UNASSIGNED),
             new Symbol("B", 0, new RuleAttributes(), new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED),       // Branch 1
             new Symbol("B", 0, new RuleAttributes(), new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED),       // Branch 2
             new Symbol("R", 0, new RuleAttributes(), new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED),       // Road
@@ -244,7 +251,7 @@ class RuleIDel : Rule {
 }
 
 /* --------------------------- 
----------- A Rules -----------
+---------- Other Rules -------
 ------------------------------ */
 // If you see an A symbol keep it
 class RuleA : Rule {
@@ -274,3 +281,62 @@ class RuleA : Rule {
         return result;
     }
 }
+
+// If you see an Br symbol keep it
+class RuleBr : Rule {
+    private String mySymbol = "Br";
+	private int del = -1;
+
+    private RoadAttributes roadAttr;
+
+    public override bool checkSymbol(Symbol symbol)
+    {
+        if (mySymbol == symbol.ID) {
+            del = symbol.Del;
+            roadAttr = symbol.RoadAttr;
+            return true;
+        }
+        return false;
+    }
+
+    public override bool checkCond()
+    {
+        return true;
+    }
+
+    public override List<ISymbol> genOutput() {
+        List<ISymbol> result = new List<ISymbol>();
+        result.Add(new Symbol("Br", del, new RuleAttributes(), roadAttr, StateType.UNASSIGNED));
+        return result;
+    }
+}
+
+// If you see a T symbol keep it
+class RuleT : Rule {
+    private String mySymbol = "T";
+	private int del = -1;
+
+    private RoadAttributes roadAttr;
+
+    public override bool checkSymbol(Symbol symbol)
+    {
+        if (mySymbol == symbol.ID) {
+            del = symbol.Del;
+            roadAttr = symbol.RoadAttr;
+            return true;
+        }
+        return false;
+    }
+
+    public override bool checkCond()
+    {
+        return true;
+    }
+
+    public override List<ISymbol> genOutput() {
+        List<ISymbol> result = new List<ISymbol>();
+        result.Add(new Symbol("T", del, new RuleAttributes(), roadAttr, StateType.UNASSIGNED));
+        return result;
+    }
+}
+

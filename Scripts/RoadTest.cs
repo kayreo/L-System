@@ -8,6 +8,12 @@ public partial class RoadTest : Node3D
 	public PackedScene Road { get; set; }
 
 	[Export]
+	public PackedScene Bridge { get; set; }
+
+	[Export]
+	public PackedScene Tunnel { get; set; }
+
+	[Export]
 	public PackedScene Destination { get; set; }
 
 	[Export(PropertyHint.Range, "0,50,1,or_greater")]
@@ -47,7 +53,7 @@ public partial class RoadTest : Node3D
 		TerrainHeight = GetNode<Node3D>("Terrain").GetNode<StaticBody3D>("StaticBody3D").GetNode<MeshInstance3D>("Terrain").Mesh;
 		// Other setup
 		GD.Randomize();
-		L = new LSystem(RoadList, DestList, Road, TerrainHeight, Rule, GetNode<Node3D>("Terrain").GetNode<MeshInstance3D>("Water").Position.Y);
+		L = new LSystem(RoadList, DestList, TerrainHeight, Rule, GetNode<Node3D>("Terrain").GetNode<MeshInstance3D>("Water").Position.Y);
 
 		randomizeDests();
 
@@ -97,6 +103,12 @@ public partial class RoadTest : Node3D
 						//GD.Print("Add a road");
 						addRoad(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
+					case "Br":
+						addBridge(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
+						break;
+					case "T":
+						addTunnel(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
+						break;
 				}
 			}
 			// Branch and save position
@@ -118,7 +130,7 @@ public partial class RoadTest : Node3D
 	private void addRoad(Vector3 pos, Vector3 lookPos) {
 		// Create new road and set position
 		//GD.Print("Adding a road at: ", pos);
-		Road newRoad = (Road)Road.Instantiate();
+		Node3D newRoad = (Node3D)Road.Instantiate();
 		//newRoad.Translate(pos);
 
 		if (!pos.Equals(lookPos)) {
@@ -129,6 +141,38 @@ public partial class RoadTest : Node3D
 		RoadList.AddChild(newRoad);
 	}
 
+	// Draw a bridge forward
+	// Same as rule +F (Rotate by angle, draw a forward line by length)
+	private void addBridge(Vector3 pos, Vector3 lookPos) {
+		// Create new road and set position
+		//GD.Print("Adding a road at: ", pos);
+		Node3D newBridge = (Node3D)Bridge.Instantiate();
+		//newRoad.Translate(pos);
+
+		if (!pos.Equals(lookPos)) {
+			newBridge.LookAtFromPosition(pos, lookPos);
+		} else {
+			newBridge.Translate(pos);
+		}
+		RoadList.AddChild(newBridge);
+	}
+
+
+	// Draw a tunnel forward
+	// Same as rule +F (Rotate by angle, draw a forward line by length)
+	private void addTunnel(Vector3 pos, Vector3 lookPos) {
+		// Create new road and set position
+		//GD.Print("Adding a road at: ", pos);
+		Node3D newBridge = (Node3D)Bridge.Instantiate();
+		//newRoad.Translate(pos);
+
+		if (!pos.Equals(lookPos)) {
+			newBridge.LookAtFromPosition(pos, lookPos);
+		} else {
+			newBridge.Translate(pos);
+		}
+		RoadList.AddChild(newBridge);
+	}
 
 	/* --------------------------- 
 	--------- Dest Funcs ---------
