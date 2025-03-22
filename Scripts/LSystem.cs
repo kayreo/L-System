@@ -31,6 +31,8 @@ public partial class LSystem
 
 	public Vector3 CurDir = Vector3.Forward;
 
+	public float SeaLevel;
+
 	public float CurAngle = 0.0f;
 
 	// Parameter lists to be populated by global goals
@@ -41,18 +43,29 @@ public partial class LSystem
     List<Vector3> roadDirections;
 	Mesh heightMap;
 
+
+	Dictionary<string, RuleAttributes> rules = new Dictionary<string, RuleAttributes> {
+		{"None", new RuleAttributes(Mathf.DegToRad(90f), Mathf.DegToRad(95f))}
+	};
+
 	// Init attributes
-	RuleAttributes initRuleAttr = new RuleAttributes(Mathf.DegToRad(90f), Mathf.DegToRad(95f));
-	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, new Vector3(50.0f, 0.0f, 50.0f), Vector3.Zero);
+	RuleAttributes initRuleAttr;
+	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, new Vector3(50.0f, 0.0f, 50.0f), Vector3.Zero, RoadType.NONE);
 
 	// begin with a basic road symbol and an insertion query to determine if legal place to put road
 	public List<ISymbol> generated;
 
-	public LSystem(Node3D rList, Node3D dList, PackedScene roadScene, Mesh hm) {
+	public LSystem(Node3D rList, Node3D dList, PackedScene roadScene, Mesh hm, string Rule, float seaLevel) {
 		DestList = dList;
 		RoadList = rList;
 		Road = roadScene;
 		heightMap = hm;
+		SeaLevel = seaLevel;
+		if (rules.ContainsKey(Rule)) {
+			initRuleAttr = rules[Rule];
+		} else {
+			initRuleAttr = rules["None"];
+		}
 		delays = new List<int>();
 		ruleAttrs = new List<RuleAttributes>();
 		roadAttrs = new List<RoadAttributes>();
@@ -202,8 +215,21 @@ public partial class LSystem
 		ruleAttrs.Clear();
 		roadAttrs.Clear();
 
+		RoadType nextRoadType = RoadType.NONE;
+
 		// Increment position to next position
 		Vector3 nextPos = curRoadAttr.Position + curRoadAttr.RoadSize * curRoadAttr.Direction;
+
+		// If the next position hits terrain, turn it into a tunnel
+		if (doesGroundIntersect(nextPos)) {
+			GD.Print("Need a tunnel");
+			nextRoadType = RoadType.TUNNEL;
+		}
+		// If the next position is over water, turn it into a bridge
+		else if (isAboveWater(nextPos)) {
+			GD.Print("Need a bridge");
+			nextRoadType = RoadType.BRIDGE;
+		}
 
 		// Adjust angle and dir for road
 		float nextAngR = getClosestDestAngle(nextPos, curRoadAttr.Direction);
@@ -231,15 +257,15 @@ public partial class LSystem
 
 		// Generate roadAttr
 		// Branch 1: Try branching to one direction
-		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1, nextDirB1, nextAngB1, curRoadAttr.RoadSize, curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1 * 2);
+		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1, nextDirB1, nextAngB1, curRoadAttr.RoadSize, curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1 * 2, RoadType.NONE);
 		roadAttrs.Add(newBranch1);
 
 		// Branch 2: Try branching to another direction
-		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2, nextDirB2, nextAngB2, curRoadAttr.RoadSize, curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2 * 2);
+		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2, nextDirB2, nextAngB2, curRoadAttr.RoadSize, curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2 * 2, RoadType.NONE);
 		roadAttrs.Add(newBranch2);
 
 		// Road: Try to move forward
-		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, curRoadAttr.RoadSize, getClosestDest(nextPos).Position);
+		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, curRoadAttr.RoadSize, getClosestDest(nextPos).Position, nextRoadType);
 		roadAttrs.Add(newRoA);
 
 	}
@@ -270,38 +296,58 @@ public partial class LSystem
 	/* --------------------------- 
 	-------- Query Funcs ---------
 	------------------------------ */
-	
+
+	// Get nearest surface to the given position
+	private Vector3 getNearestSurface(Vector3 pos) {
+		float shortestDist = float.MaxValue;
+		Vector3 closestSurface = Vector3.Zero;
+		
+		Godot.Collections.Array heights = (Godot.Collections.Array)heightMap.SurfaceGetArrays(0)[0];
+		foreach (Variant h in heights) {
+			Vector3 curH = (Vector3)h;
+			float dist = pos.DistanceSquaredTo(curH);
+			if (dist < shortestDist) {
+				shortestDist = dist;
+				closestSurface = curH;
+			}
+		}
+		return closestSurface;
+	}
+
+	// Check if the current position is above sea level and not intersecting with land
+	private bool isAboveWater(Vector3 pos) {
+		Vector3 checkSurface = getNearestSurface(pos);
+		GD.Print("Water check");
+		GD.Print("Checking surface: " + checkSurface);
+		GD.Print("Checking pos: " + pos);
+
+		return pos.Y >= SeaLevel;
+	}
+
+	// Check if the current position intersects with the terrain
+	private bool doesGroundIntersect(Vector3 pos) {
+		// Check if a road is valid and can be placed here
+		// To get vertices of surface: heightMap.SurfaceGetArrays(0)[0]
+		// Get the nearest surface
+		Vector3 checkHeight = getNearestSurface(pos);
+		GD.Print("Ground check");
+		GD.Print("Height: " + checkHeight);
+		GD.Print("Cur pos: " + pos);
+		// heightmap intersects with cur position road, need to be a tunnel
+		if (checkHeight.Y > pos.Y) {
+			return true;
+		}
+		return false;
+	}
+
+
 	// Queries whether the road can be inserted
 	// checks for legal terrain, or if road will intersect with water, mountains, etc.
 	private bool insertQuery(RoadAttributes roadAttr) {
 		//GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition + " With angle : " + roadAttr.Direction);
 		//GD.Print("Road locs: " +  string.Join("\n", roadLocations));
-		Vector3 curPos = roadAttr.Position;
-		float shortestDist = float.MaxValue;
-		Vector3 checkHeight = Vector3.Zero;
-
 		Vector3 startPos = roadAttr.Position - (roadAttr.Direction * new Vector3(25f, 0f, 25f));
 		Vector3 endPos = roadAttr.Position + (roadAttr.Direction * new Vector3(25f, 0f, 25f));
-
-		// Check if a road is valid and can be placed here
-		// To get vertices of surface: heightMap.SurfaceGetArrays(0)[0]
-		Godot.Collections.Array heights = (Godot.Collections.Array)heightMap.SurfaceGetArrays(0)[0];
-		foreach (Variant h in heights) {
-			Vector3 curH = (Vector3)h;
-			float dist = curPos.DistanceSquaredTo(curH);
-			if (dist < shortestDist) {
-				shortestDist = dist;
-				checkHeight = curH;
-			}
-		}
-
-		GD.Print("Height: " + checkHeight);
-		GD.Print("Cur pos: " + curPos);
-		// heightmap intersects with cur position road, need to be a bridge
-		if (checkHeight.Y > curPos.Y) {
-			GD.Print("TOO TALL!!!!!");
-			return false;
-		}
 
 		for (int i = 0; i < roadLocations.Count; i++) {
             Vector3 pos = roadLocations[i];
@@ -323,14 +369,32 @@ public partial class LSystem
 
 	static bool lineIntersectsLine(Vector3 pFromA, Vector3 pDirA, Vector3 pFromB, Vector3 pDirB, out Vector3 rResult) {
 		// See http://paulbourke.net/geometry/pointlineplane/
-		float denom = pDirB.Z * pDirA.X - pDirB.X * pDirA.Z;
 		rResult = Vector3.Inf;
-		if (denom <= 0.00001f) { // Parallel?
+
+		// Compute the cross product to determine if the lines are parallel
+		Vector3 crossDir = pDirA.Cross(pDirB);
+		float denom = crossDir.LengthSquared();
+
+		if (denom <= 0.00001f) { // Parallel or nearly parallel?
 			return false;
 		}
-		Vector3 v = pFromA - pFromB;
-		float t = (pDirB.X * v.Z - pDirB.Z * v.X) / denom;
-		rResult = pFromA + t * pDirA;
+
+		// Solve for t and u using a determinant approach
+		Vector3 v = pFromB - pFromA;
+		float t = v.Cross(pDirB).Dot(crossDir) / denom;
+		float u =  v.Cross(pDirA).Dot(crossDir) / denom;
+
+		// Compute the intersection points on both lines
+		Vector3 pointA = pFromA + t * pDirA;
+		Vector3 pointB = pFromB + u * pDirB;
+
+		// Check if the intersection points are close enough (due to floating point precision)
+		if ((pointA - pointB).LengthSquared() > 0.00001f)
+		{
+			return false; // The lines are skew, meaning they don't truly intersect
+		}
+
+		rResult = pointA; // They intersect at this point
 		return true;
 	}
 

@@ -4,6 +4,18 @@ using System.Collections.Generic;
 using System.Data;
 using System.Dynamic;
 
+public enum StateType {
+	UNASSIGNED,
+	SUCCESS,
+	FAILURE
+}
+
+public enum RoadType {
+	NONE,
+	BRIDGE,
+	TUNNEL
+}
+
 // Struct for rule attributes
 public struct RuleAttributes {
 	public RuleAttributes(float minAng, float maxAng) {
@@ -20,12 +32,13 @@ public float MinAngle { get; set; }
 
 // Struct for road attributes
 public struct RoadAttributes {
-	public RoadAttributes(Vector3 pos, Vector3 dir, float curAng, Vector3 roadSize, Vector3 lookPos) {
+	public RoadAttributes(Vector3 pos, Vector3 dir, float curAng, Vector3 roadSize, Vector3 lookPos, RoadType rt) {
 		Position = pos;
 		Direction = dir;
 		CurAngle = curAng;
 		RoadSize = roadSize;
 		LookPosition = lookPos;
+		BuildRoadType = rt;
 	}
 
 	public Vector3 Position { get; set; }
@@ -35,13 +48,9 @@ public struct RoadAttributes {
 	public float CurAngle { get; set; }
 	public Vector3 RoadSize { get; set; }
 
-	public override string ToString() => $"(Pos:{Position}, Dir:{Direction}, Angle: {CurAngle}, Road:{RoadSize})";
-}
+	public RoadType BuildRoadType { get; set; }
 
-public enum StateType {
-	UNASSIGNED,
-	SUCCESS,
-	FAILURE
+	public override string ToString() => $"(Pos:{Position}, Dir:{Direction}, Angle: {CurAngle}, Road:{BuildRoadType})";
 }
 
 // Generic symbol type to account for reg symbols and symbol containers

@@ -10,8 +10,14 @@ public partial class RoadTest : Node3D
 	[Export]
 	public PackedScene Destination { get; set; }
 
-	[Export]
-	public int Iterations { get; set; }
+	[Export(PropertyHint.Range, "0,50,1,or_greater")]
+	public int Iterations;
+
+	[Export(PropertyHint.Enum,"None,Rule1,Rule2")]
+	public string Rule = "None";
+
+	// [Export(PropertyHint.Range, "0,100,1,or_greater")]
+	// public int SeaLevel;
 
 	public Node3D RoadList;
 
@@ -26,7 +32,7 @@ public partial class RoadTest : Node3D
 	/*
 	TODO: add terrain
 	add more functionality in godot editor
-		- WHAT DID I WANNA ADD???
+		- add rule customization to editor (user can select which rule to run simulation on)
 	add bridges (and maybe tunnels) to l system (new symbol, new instantiated scene)
 		- detect terrain height, bridge spawn when above threshold
 	*/
@@ -41,7 +47,7 @@ public partial class RoadTest : Node3D
 		TerrainHeight = GetNode<Node3D>("Terrain").GetNode<StaticBody3D>("StaticBody3D").GetNode<MeshInstance3D>("Terrain").Mesh;
 		// Other setup
 		GD.Randomize();
-		L = new LSystem(RoadList, DestList, Road, TerrainHeight);
+		L = new LSystem(RoadList, DestList, Road, TerrainHeight, Rule, GetNode<Node3D>("Terrain").GetNode<MeshInstance3D>("Water").Position.Y);
 
 		randomizeDests();
 
