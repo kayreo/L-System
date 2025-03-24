@@ -43,7 +43,7 @@ public partial class LSystem
 
 
 	Dictionary<string, RuleAttributes> rules = new Dictionary<string, RuleAttributes> {
-		{"None", new RuleAttributes(Mathf.DegToRad(90f), Mathf.DegToRad(95f))}
+		{"None", new RuleAttributes(Mathf.DegToRad(-90f), Mathf.DegToRad(90f))}
 	};
 
 	// Init attributes
@@ -212,10 +212,22 @@ public partial class LSystem
 		ruleAttrs.Clear();
 		roadAttrs.Clear();
 
+		int delayB1 = 3;
+		int delayB2 = 3;
+		int delayR = 1;
+
 		RoadType nextRoadType = RoadType.NONE;
 
+		// Adjust angle and dir for road
+		float nextAngR = getClosestDestAngle(curRoadAttr.Position, curRoadAttr.Direction);
+		
+		if (nextAngR < curRuleAttr.MinAngle || nextAngR > curRuleAttr.MaxAngle) {
+			delayR = -1;
+		}
+		Vector3 nextDirR = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngR).Normalized();
+
 		// Increment position to next position
-		Vector3 nextPos = curRoadAttr.Position + curRoadAttr.RoadSize * curRoadAttr.Direction;
+		Vector3 nextPos = curRoadAttr.Position + curRoadAttr.RoadSize * nextDirR;
 
 		// If the next position hits terrain, turn it into a tunnel
 		if (doesGroundIntersect(nextPos)) {
@@ -228,10 +240,6 @@ public partial class LSystem
 			nextRoadType = RoadType.BRIDGE;
 		}
 
-		// Adjust angle and dir for road
-		float nextAngR = getClosestDestAngle(nextPos, curRoadAttr.Direction);
-		Vector3 nextDirR = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngR).Normalized();
-
 		// Adjust angle and dir for branch 1
 		float nextAngB1 = curRoadAttr.CurAngle + (float)GD.RandRange(curRuleAttr.MinAngle, curRuleAttr.MaxAngle);
 		Vector3 nextDirB1 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB1).Normalized();
@@ -242,9 +250,9 @@ public partial class LSystem
 
 		// Generate delays
 		// arbitrary rn
-		delays.Add(3);
-		delays.Add(3);
-		delays.Add(1);
+		delays.Add(delayB1);
+		delays.Add(delayB2);
+		delays.Add(delayR);
 
 		// Generate ruleAttr
 		for (int i = 0; i < 3; i++) {

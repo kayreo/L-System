@@ -39,6 +39,7 @@ class RuleRBranch : Rule {
 	};
 
     private RoadAttributes savedAttr;
+    private RuleAttributes ruleAttr;
 
     public override bool checkSymbol(Symbol symbol)
     {
@@ -46,6 +47,7 @@ class RuleRBranch : Rule {
             vars["del"] = symbol.Del;
             vars["state"] = (int)symbol.State;
             savedAttr = symbol.RoadAttr;
+            ruleAttr = symbol.RuleAttr;
             return true;
         }
         return false;
@@ -67,10 +69,10 @@ class RuleRBranch : Rule {
         //Two branch modules, B and a road module R plus the insertion query ?I are created.
         List<ISymbol> result = new List<ISymbol>{
             new Symbol(nextSymbol, 0, new RuleAttributes(), savedAttr, StateType.UNASSIGNED),
-            new Symbol("B", 0, new RuleAttributes(), new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED),       // Branch 1
-            new Symbol("B", 0, new RuleAttributes(), new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED),       // Branch 2
-            new Symbol("R", 0, new RuleAttributes(), new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED),       // Road
-            new Symbol("?I", 0, new RuleAttributes(), new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED)       // Insertion query
+            new Symbol("B", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED),       // Branch 1
+            new Symbol("B", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED),       // Branch 2
+            new Symbol("R", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED),       // Road
+            new Symbol("?I", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED)       // Insertion query
         };
         return result;
     }
@@ -122,13 +124,14 @@ class RuleB : Rule {
 	};
 
     private RoadAttributes roadAttr;
-
+    private RuleAttributes ruleAttr;
 
     public override bool checkSymbol(Symbol symbol)
     {
         if (mySymbol == symbol.ID) {
             vars["del"] = symbol.Del;
             roadAttr = symbol.RoadAttr;
+            ruleAttr = symbol.RuleAttr;
             return true;
         }
         return false;
@@ -143,12 +146,12 @@ class RuleB : Rule {
     public override List<ISymbol> genOutput() {
         List<ISymbol> result = new List<ISymbol>();
         if (vars["del"] > 0) {
-            Symbol Bsym = new Symbol("B", vars["del"] - 1, new RuleAttributes(), roadAttr, StateType.UNASSIGNED);
+            Symbol Bsym = new Symbol("B", vars["del"] - 1, ruleAttr, roadAttr, StateType.UNASSIGNED);
             result.Add(Bsym);
         } else if (vars["del"] == 0) {
             SymBranch BSym = new SymBranch();
-            Symbol R = new Symbol("R", vars["del"], new RuleAttributes(), roadAttr, StateType.UNASSIGNED);
-            Symbol I = new Symbol("?I", -1, new RuleAttributes(), roadAttr, StateType.UNASSIGNED);
+            Symbol R = new Symbol("R", vars["del"], ruleAttr, roadAttr, StateType.UNASSIGNED);
+            Symbol I = new Symbol("?I", -1, ruleAttr, roadAttr, StateType.UNASSIGNED);
             BSym.Syms.Add(R);
             BSym.Syms.Add(I);
             result.Add(BSym);
@@ -197,14 +200,18 @@ class RuleBDel : Rule {
 } → ?I(roadAttr, state)*/
 class RuleI : Rule {
     private String mySymbol = "?I";
+    
 	private Dictionary<string, int> vars = new Dictionary<string, int>{
 		{"state", -1},
 	};
+
+    private RuleAttributes ruleAttr;
 
     public override bool checkSymbol(Symbol symbol)
     {
         if (mySymbol == symbol.ID) {
             vars["state"] = (int)symbol.State;
+            ruleAttr = symbol.RuleAttr;
             return true;
         }
         return false;
@@ -217,7 +224,7 @@ class RuleI : Rule {
 
     public override List<ISymbol> genOutput() {
         List<ISymbol> result = new List<ISymbol>();
-        Symbol newISym = new Symbol("?I", -1, new RuleAttributes(), new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED);
+        Symbol newISym = new Symbol("?I", -1, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED);
         result.Add(newISym);
         return result;
     }
@@ -259,12 +266,14 @@ class RuleA : Rule {
 	private int del = -1;
 
     private RoadAttributes roadAttr;
+    private RuleAttributes ruleAttr;
 
     public override bool checkSymbol(Symbol symbol)
     {
         if (mySymbol == symbol.ID) {
             del = symbol.Del;
             roadAttr = symbol.RoadAttr;
+            ruleAttr = symbol.RuleAttr;
             return true;
         }
         return false;
@@ -277,7 +286,7 @@ class RuleA : Rule {
 
     public override List<ISymbol> genOutput() {
         List<ISymbol> result = new List<ISymbol>();
-        result.Add(new Symbol("A", del, new RuleAttributes(), roadAttr, StateType.UNASSIGNED));
+        result.Add(new Symbol("A", del, ruleAttr, roadAttr, StateType.UNASSIGNED));
         return result;
     }
 }
@@ -289,11 +298,14 @@ class RuleBr : Rule {
 
     private RoadAttributes roadAttr;
 
+    private RuleAttributes ruleAttr;
+
     public override bool checkSymbol(Symbol symbol)
     {
         if (mySymbol == symbol.ID) {
             del = symbol.Del;
             roadAttr = symbol.RoadAttr;
+            ruleAttr = symbol.RuleAttr;
             return true;
         }
         return false;
@@ -306,7 +318,7 @@ class RuleBr : Rule {
 
     public override List<ISymbol> genOutput() {
         List<ISymbol> result = new List<ISymbol>();
-        result.Add(new Symbol("Br", del, new RuleAttributes(), roadAttr, StateType.UNASSIGNED));
+        result.Add(new Symbol("Br", del, ruleAttr, roadAttr, StateType.UNASSIGNED));
         return result;
     }
 }
@@ -317,12 +329,14 @@ class RuleT : Rule {
 	private int del = -1;
 
     private RoadAttributes roadAttr;
+    private RuleAttributes ruleAttr;
 
     public override bool checkSymbol(Symbol symbol)
     {
         if (mySymbol == symbol.ID) {
             del = symbol.Del;
             roadAttr = symbol.RoadAttr;
+            ruleAttr = symbol.RuleAttr;
             return true;
         }
         return false;
@@ -335,7 +349,7 @@ class RuleT : Rule {
 
     public override List<ISymbol> genOutput() {
         List<ISymbol> result = new List<ISymbol>();
-        result.Add(new Symbol("T", del, new RuleAttributes(), roadAttr, StateType.UNASSIGNED));
+        result.Add(new Symbol("T", del, ruleAttr, roadAttr, StateType.UNASSIGNED));
         return result;
     }
 }
