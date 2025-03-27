@@ -244,9 +244,17 @@ public partial class LSystem
 		float nextAngB1 = curRoadAttr.CurAngle + (float)GD.RandRange(curRuleAttr.MinAngle, curRuleAttr.MaxAngle);
 		Vector3 nextDirB1 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB1).Normalized();
 
+		if (nextAngB1 < curRuleAttr.MinAngle || nextAngB1 > curRuleAttr.MaxAngle) {
+			delayB1 = -1;
+		}
+
 		// Adjust angle and dir for branch 2
 		float nextAngB2 = curRoadAttr.CurAngle - (float)GD.RandRange(curRuleAttr.MinAngle, curRuleAttr.MaxAngle);
 		Vector3 nextDirB2 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB2).Normalized();
+
+		if (nextAngB2 < curRuleAttr.MinAngle || nextAngB2 > curRuleAttr.MaxAngle) {
+			delayB2 = -1;
+		}
 
 		// Generate delays
 		// arbitrary rn

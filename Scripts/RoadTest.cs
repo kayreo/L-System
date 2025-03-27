@@ -181,7 +181,11 @@ public partial class RoadTest : Node3D
 	private void randomizeDests() {
 		Vector3 boundsSize = Bounds.GetAabb().Size;
 		for (int i = 0; i < 3; i++) {
-			Vector3 placePos = new Vector3(GD.RandRange((int)-boundsSize.X/3, (int)boundsSize.X/3), 0, GD.RandRange((int)-boundsSize.Z/3, (int)boundsSize.Z/3));
+			int x = GD.RandRange((int)-boundsSize.X/3, (int)boundsSize.X/3);
+			int z = GD.RandRange((int)-boundsSize.Z/3, (int)boundsSize.Z/3);
+			int y = (int)getNearestSurface(new Vector3(x, 0, z)).Y;
+			Vector3 placePos = new Vector3(x, y, z);
+			GD.Print("Placing at: ", placePos);
 			addDest(placePos);
 		}
 	}
@@ -190,5 +194,22 @@ public partial class RoadTest : Node3D
 		Node3D newDest = (Node3D)Destination.Instantiate();
 		newDest.Translate(pos);
 		DestList.AddChild(newDest);
+	}
+
+	// Get nearest surface to the given position
+	private Vector3 getNearestSurface(Vector3 pos) {
+		float shortestDist = float.MaxValue;
+		Vector3 closestSurface = Vector3.Zero;
+		
+		Godot.Collections.Array heights = (Godot.Collections.Array)TerrainHeight.SurfaceGetArrays(0)[0];
+		foreach (Variant h in heights) {
+			Vector3 curH = (Vector3)h;
+			float dist = Mathf.Sqrt(pos.DistanceSquaredTo(curH));
+			if (dist < shortestDist) {
+				shortestDist = dist;
+				closestSurface = curH;
+			}
+		}
+		return closestSurface;
 	}
 }
