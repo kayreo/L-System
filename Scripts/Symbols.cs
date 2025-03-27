@@ -13,7 +13,8 @@ public enum StateType {
 public enum RoadType {
 	NONE,
 	BRIDGE,
-	TUNNEL
+	TUNNELSTART,
+	TUNNELEND 
 }
 
 // Struct for rule attributes

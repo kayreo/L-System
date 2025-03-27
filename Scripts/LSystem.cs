@@ -43,7 +43,7 @@ public partial class LSystem
 
 
 	Dictionary<string, RuleAttributes> rules = new Dictionary<string, RuleAttributes> {
-		{"None", new RuleAttributes(Mathf.DegToRad(-90f), Mathf.DegToRad(90f))}
+		{"None", new RuleAttributes(Mathf.DegToRad(90f), Mathf.DegToRad(95f))}
 	};
 
 	// Init attributes
@@ -132,7 +132,7 @@ public partial class LSystem
 			if (sym is Symbol) {				
 				// General rewrites
 				Symbol castedSym = (Symbol) sym;
-				if (castedSym.ID == "A" || castedSym.ID == "Br" || castedSym.ID == "T") {
+				if (castedSym.ID == "A" || castedSym.ID == "Br" || castedSym.ID == "T" || castedSym.ID == "T1" || castedSym.ID == "T2") {
 					result = new List<ISymbol>{castedSym};
 				}
 				// Check LC and RC
@@ -214,25 +214,27 @@ public partial class LSystem
 
 		int delayB1 = 3;
 		int delayB2 = 3;
-		int delayR = 1;
+		int delayR = 2;
 
 		RoadType nextRoadType = RoadType.NONE;
 
+		// Increment position to next position
+		Vector3 nextPos = curRoadAttr.Position + curRoadAttr.RoadSize * curRoadAttr.Direction;
+
 		// Adjust angle and dir for road
-		float nextAngR = getClosestDestAngle(curRoadAttr.Position, curRoadAttr.Direction);
-		
-		if (nextAngR < curRuleAttr.MinAngle || nextAngR > curRuleAttr.MaxAngle) {
-			delayR = -1;
-		}
+		float nextAngR = getClosestDestAngle(nextPos, curRoadAttr.Direction);
 		Vector3 nextDirR = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngR).Normalized();
 
-		// Increment position to next position
-		Vector3 nextPos = curRoadAttr.Position + curRoadAttr.RoadSize * nextDirR;
-
 		// If the next position hits terrain, turn it into a tunnel
-		if (doesGroundIntersect(nextPos)) {
-			//GD.Print("Need a tunnel");
-			nextRoadType = RoadType.TUNNEL;
+		if (doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize)) {
+			if (curRoadAttr.BuildRoadType != RoadType.TUNNELSTART) {
+				nextRoadType = RoadType.TUNNELSTART;
+			} else {
+				nextRoadType = RoadType.TUNNELSTART;
+			}
+		}
+		else if (!doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize) && curRoadAttr.BuildRoadType == RoadType.TUNNELSTART) {
+			nextRoadType = RoadType.TUNNELEND;
 		}
 		// If the next position is over water, turn it into a bridge
 		else if (isAboveWater(nextPos)) {
@@ -244,29 +246,15 @@ public partial class LSystem
 		float nextAngB1 = curRoadAttr.CurAngle + (float)GD.RandRange(curRuleAttr.MinAngle, curRuleAttr.MaxAngle);
 		Vector3 nextDirB1 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB1).Normalized();
 
-		if (nextAngB1 < curRuleAttr.MinAngle || nextAngB1 > curRuleAttr.MaxAngle) {
-			delayB1 = -1;
-		}
-
 		// Adjust angle and dir for branch 2
 		float nextAngB2 = curRoadAttr.CurAngle - (float)GD.RandRange(curRuleAttr.MinAngle, curRuleAttr.MaxAngle);
 		Vector3 nextDirB2 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB2).Normalized();
-
-		if (nextAngB2 < curRuleAttr.MinAngle || nextAngB2 > curRuleAttr.MaxAngle) {
-			delayB2 = -1;
-		}
 
 		// Generate delays
 		// arbitrary rn
 		delays.Add(delayB1);
 		delays.Add(delayB2);
 		delays.Add(delayR);
-
-		// Generate ruleAttr
-		for (int i = 0; i < 3; i++) {
-			RuleAttributes ruleAttr = new RuleAttributes();
-			ruleAttrs.Add(ruleAttr);
-		}
 
 		// Generate roadAttr
 		// Branch 1: Try branching to one direction
@@ -334,15 +322,22 @@ public partial class LSystem
 	}
 
 	// Check if the current position intersects with the terrain
-	private bool doesGroundIntersect(Vector3 pos) {
+	private bool doesGroundIntersect(Vector3 pos, Vector3 dir, Vector3 size) {
 		// Check if a road is valid and can be placed here
 		// To get vertices of surface: heightMap.SurfaceGetArrays(0)[0]
 		// Get the nearest surface
 		Vector3 checkHeight = getNearestSurface(pos);
 
-		// heightmap intersects with cur position road, need to be a tunnel
-		if (checkHeight.Y > pos.Y) {
-			return true;
+		// Check if the road is intersecting with surface
+		Vector3 startPos = pos - (dir * size);
+		Vector3 endPos = pos + (dir * size);
+
+		if (startPos > checkHeight && endPos < checkHeight) {
+			// heightmap intersects with cur position road, need to be a tunnel
+			if (checkHeight.Y > pos.Y) {
+				//GD.Print("Intersecting");
+				return true;
+			}	
 		}
 		return false;
 	}
@@ -353,8 +348,8 @@ public partial class LSystem
 	private bool insertQuery(RoadAttributes roadAttr) {
 		//GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition + " With angle : " + roadAttr.Direction);
 		//GD.Print("Road locs: " +  string.Join("\n", roadLocations));
-		Vector3 startPos = roadAttr.Position - (roadAttr.Direction * new Vector3(25f, 0f, 25f));
-		Vector3 endPos = roadAttr.Position + (roadAttr.Direction * new Vector3(25f, 0f, 25f));
+		Vector3 startPos = roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize);
+		Vector3 endPos = roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize);
 
 		for (int i = 0; i < roadLocations.Count; i++) {
             Vector3 pos = roadLocations[i];
@@ -364,7 +359,8 @@ public partial class LSystem
 			if (lineIntersectsLine(roadAttr.Position, roadAttr.Direction, pos, dir, out intersectPos) && 
 					intersectPos > startPos &&
 					intersectPos < endPos) {
-				//GD.Print("Invalid location");
+				GD.Print("Intersecting at : ", intersectPos);
+				GD.Print("Start: ", startPos, " End: ", endPos);
 				return false;
 			}
 		}
@@ -387,20 +383,29 @@ public partial class LSystem
 	*/
 	static bool lineIntersectsLine(Vector3 pFromA, Vector3 pDirA, Vector3 pFromB, Vector3 pDirB, out Vector3 rResult) {
 		// See http://paulbourke.net/geometry/pointlineplane/
+		// rResult = Vector3.Inf;
+
+		// // Compute the cross product to check if the lines are parallel
+		// Vector3 crossDir = pDirA.Cross(pDirB);
+		// float denom = crossDir.LengthSquared(); // Equivalent to determinant in 3D
+		// if (denom <= 0.0001f) { // Parallel or nearly parallel?
+		// 	return false;
+		// }
+
+		// // Solve for t using determinant-based approach
+		// Vector3 v = pFromA - pFromB;
+		// float t = v.Cross(pDirB).Dot(crossDir) / denom;
+
+		// rResult = pFromA + t * pDirA;
+		// return true;
+
+		float denom = pDirB.Z * pDirA.X - pDirB.X * pDirA.Z; 
 		rResult = Vector3.Inf;
-
-		// Compute the cross product to check if the lines are parallel
-		Vector3 crossDir = pDirA.Cross(pDirB);
-		float denom = crossDir.LengthSquared(); // Equivalent to determinant in 3D
-
-		if (denom <= 0.00001f) { // Parallel or nearly parallel?
+		if (denom <= 0.00001f) { // Parallel?
 			return false;
 		}
-
-		// Solve for t using determinant-based approach
 		Vector3 v = pFromA - pFromB;
-		float t = v.Cross(pDirB).Dot(crossDir) / denom;
-
+		float t = (pDirB.X * v.Z - pDirB.Z * v.X) / denom;
 		rResult = pFromA + t * pDirA;
 		return true;
 	}

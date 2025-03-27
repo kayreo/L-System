@@ -1,0 +1,23 @@
+[gd_scene load_steps=4 format=3 uid="uid://ihxsl5cslejy"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_5a7px"]
+radius = 10.0
+height = 20.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2rnxx"]
+albedo_color = Color(0, 0.586757, 0.633762, 1)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_hx2kg"]
+radius = 10.0
+
+[node name="TunnelStart" type="Node3D"]
+
+[node name="StaticBody3D" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 18)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D"]
+mesh = SubResource("SphereMesh_5a7px")
+surface_material_override/0 = SubResource("StandardMaterial3D_2rnxx")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
+shape = SubResource("SphereShape3D_hx2kg")
