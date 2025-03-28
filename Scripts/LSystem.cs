@@ -230,7 +230,7 @@ public partial class LSystem
 			if (curRoadAttr.BuildRoadType != RoadType.TUNNELSTART) {
 				nextRoadType = RoadType.TUNNELSTART;
 			} else {
-				nextRoadType = RoadType.TUNNELSTART;
+				nextRoadType = RoadType.TUNNEL;
 			}
 		}
 		else if (!doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize) && curRoadAttr.BuildRoadType == RoadType.TUNNELSTART) {
@@ -271,8 +271,6 @@ public partial class LSystem
 
 	}
 
-	// TODO: need to add state changing and param adjustment based on goals
-	// For now, just set everything to true
 	private void localConstraints(List<ISymbol> axiom) {
 		for (int i = 0; i < axiom.Count; i++) {
 			if (axiom[i] is Symbol) {
@@ -283,7 +281,6 @@ public partial class LSystem
 					} else {
 						castedSym.State = StateType.FAILURE;
 					}
-					axiom[i] = castedSym;
 				}
 				axiom[i] = castedSym;
 			} else if (axiom[i] is SymBranch) {
@@ -317,7 +314,6 @@ public partial class LSystem
 
 	// Check if the current position is above sea level and not intersecting with land
 	private bool isAboveWater(Vector3 pos) {
-		Vector3 checkSurface = getNearestSurface(pos);
 		return pos.Y >= SeaLevel;
 	}
 
@@ -359,8 +355,8 @@ public partial class LSystem
 			if (lineIntersectsLine(roadAttr.Position, roadAttr.Direction, pos, dir, out intersectPos) && 
 					intersectPos > startPos &&
 					intersectPos < endPos) {
-				GD.Print("Intersecting at : ", intersectPos);
-				GD.Print("Start: ", startPos, " End: ", endPos);
+			//	GD.Print("Intersecting at : ", intersectPos);
+			//	GD.Print("Start: ", startPos, " End: ", endPos);
 				return false;
 			}
 		}

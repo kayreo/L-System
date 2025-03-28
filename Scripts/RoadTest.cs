@@ -14,6 +14,9 @@ public partial class RoadTest : Node3D
 	public PackedScene TunnelStart { get; set; }
 
 	[Export]
+	public PackedScene Tunnel { get; set; }
+
+	[Export]
 	public PackedScene TunnelEnd { get; set; }
 
 	[Export]
@@ -25,15 +28,19 @@ public partial class RoadTest : Node3D
 	[Export(PropertyHint.Enum,"None,Rule1,Rule2")]
 	public string Rule = "None";
 
-
 	[Export(PropertyHint.Enum, "Overhead,Player")]
 	public string StartCamera = "Overhead";
+
+	[Export]
+	public bool ShowTerrain = true;
 
 	public Node3D RoadList;
 
 	public Node3D DestList;
 
 	public MeshInstance3D Bounds;
+
+	public Node3D Terrain;
 
 	public Mesh TerrainHeight;
 
@@ -56,9 +63,11 @@ public partial class RoadTest : Node3D
 		RoadList = GetNode<Node3D>("Roads");
 		DestList = GetNode<Node3D>("Destinations");
 		Bounds = GetNode<MeshInstance3D>("Bounds");
-		TerrainHeight = GetNode<Node3D>("Terrain").GetNode<StaticBody3D>("StaticBody3D").GetNode<MeshInstance3D>("Terrain").Mesh;
+		Terrain = GetNode<Node3D>("Terrain");
+		TerrainHeight = Terrain.GetNode<StaticBody3D>("StaticBody3D").GetNode<MeshInstance3D>("Terrain").Mesh;
 		cameras.Add("Overhead", GetNode<Camera3D>("Camera3D"));
 		cameras.Add("Player", GetNode<Camera3D>("Player/Camera3D"));
+		ToggleTerrain();
 		cameras[StartCamera].MakeCurrent();
 		// Other setup
 		GD.Randomize();
@@ -103,6 +112,18 @@ public partial class RoadTest : Node3D
 			}
 			cameras[StartCamera].MakeCurrent();
 		}
+		if (Input.IsActionJustReleased("ToggleTerrain")) {
+			ShowTerrain = !ShowTerrain;
+			ToggleTerrain();
+		}
+	}
+
+	private void ToggleTerrain() {
+		if (ShowTerrain) {
+			Terrain.Visible = true;
+		} else {
+			Terrain.Visible = false;
+		}
 	}
 
 	// Go through generated symbols and interperet
@@ -128,6 +149,9 @@ public partial class RoadTest : Node3D
 						break;
 					case "T2":
 						addTunnelEnd(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
+						break;
+					case "T":
+						addTunnel(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 				}
 			}
@@ -183,15 +207,15 @@ public partial class RoadTest : Node3D
 	private void addTunnel(Vector3 pos, Vector3 lookPos) {
 		// Create new road and set position
 		//GD.Print("Adding a road at: ", pos);
-		Node3D newTunnelEnd = (Node3D)Bridge.Instantiate();
+		Node3D newTunnel = (Node3D)Tunnel.Instantiate();
 		//newRoad.Translate(pos);
 
 		if (!pos.Equals(lookPos)) {
-			newTunnelEnd.LookAtFromPosition(pos, lookPos);
+			newTunnel.LookAtFromPosition(pos, lookPos);
 		} else {
-			newTunnelEnd.Translate(pos);
+			newTunnel.Translate(pos);
 		}
-		RoadList.AddChild(newTunnelEnd);
+		RoadList.AddChild(newTunnel);
 	}
 
 	// Draw a tunnel forward

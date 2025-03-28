@@ -67,6 +67,8 @@ class RuleRBranch : Rule {
             nextSymbol = "T1";
         } else if (savedAttr.BuildRoadType == RoadType.TUNNELEND) {
             nextSymbol = "T2";
+        } else if (savedAttr.BuildRoadType == RoadType.TUNNEL) {
+            nextSymbol = "T";
         }
         //Two branch modules, B and a road module R plus the insertion query ?I are created.
         List<ISymbol> result = new List<ISymbol>{

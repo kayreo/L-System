@@ -14,6 +14,7 @@ public enum RoadType {
 	NONE,
 	BRIDGE,
 	TUNNELSTART,
+	TUNNEL,
 	TUNNELEND 
 }
 

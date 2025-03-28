@@ -47,7 +47,7 @@ Noise = SubResource("FastNoiseLite_cbq7w")
 [node name="TerrainCollision" parent="Terrain/StaticBody3D" index="1"]
 shape = SubResource("ConcavePolygonShape3D_aase5")
 
-[node name="Water" parent="Terrain" index="2"]
+[node name="Water" parent="Terrain" index="1"]
 mesh = SubResource("BoxMesh_nid0j")
 
 [editable path="Terrain"]
