@@ -236,7 +236,7 @@ public partial class LSystem
 		else if (!doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize) && curRoadAttr.BuildRoadType == RoadType.TUNNELSTART) {
 			nextRoadType = RoadType.TUNNELEND;
 		}
-		// If the next position is over water, turn it into a bridge
+		// If the next position is over water and not hitting terrain, turn it into a bridge
 		else if (isAboveWater(nextPos)) {
 			//GD.Print("Need a bridge");
 			nextRoadType = RoadType.BRIDGE;

@@ -259,7 +259,7 @@ public partial class RoadTest : Node3D
 		for (int i = 0; i < 3; i++) {
 			int x = GD.RandRange((int)-boundsSize.X/3, (int)boundsSize.X/3);
 			int z = GD.RandRange((int)-boundsSize.Z/3, (int)boundsSize.Z/3);
-			int y = (int)getNearestSurface(new Vector3(x, 0, z)).Y;
+			int y = 0;//(int)getNearestSurface(new Vector3(x, 0, z)).Y;
 			Vector3 placePos = new Vector3(x, y, z);
 			GD.Print("Placing at: ", placePos);
 			addDest(placePos);
