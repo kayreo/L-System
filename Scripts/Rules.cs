@@ -73,10 +73,10 @@ class RuleRBranch : Rule {
         //Two branch modules, B and a road module R plus the insertion query ?I are created.
         List<ISymbol> result = new List<ISymbol>{
             new Symbol(nextSymbol, 0, new RuleAttributes(), savedAttr, StateType.UNASSIGNED),
-            new Symbol("B", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED),       // Branch 1
-            new Symbol("B", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED),       // Branch 2
-            new Symbol("R", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED),       // Road
-            new Symbol("?I", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED)       // Insertion query
+            new Symbol("B", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, true), StateType.UNASSIGNED),       // Branch 1
+            new Symbol("B", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, true), StateType.UNASSIGNED),       // Branch 2
+            new Symbol("R", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, false), StateType.UNASSIGNED),       // Road
+            new Symbol("?I", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, false), StateType.UNASSIGNED)       // Insertion query
         };
         return result;
     }
@@ -228,7 +228,7 @@ class RuleI : Rule {
 
     public override List<ISymbol> genOutput() {
         List<ISymbol> result = new List<ISymbol>();
-        Symbol newISym = new Symbol("?I", -1, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, Vector3.Zero, Vector3.Zero, RoadType.NONE), StateType.UNASSIGNED);
+        Symbol newISym = new Symbol("?I", -1, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, false), StateType.UNASSIGNED);
         result.Add(newISym);
         return result;
     }

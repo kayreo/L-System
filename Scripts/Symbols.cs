@@ -1,8 +1,6 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Dynamic;
 
 public enum StateType {
 	UNASSIGNED,
@@ -34,13 +32,14 @@ public float MinAngle { get; set; }
 
 // Struct for road attributes
 public struct RoadAttributes {
-	public RoadAttributes(Vector3 pos, Vector3 dir, float curAng, Vector3 roadSize, Vector3 lookPos, RoadType rt) {
+	public RoadAttributes(Vector3 pos, Vector3 dir, float curAng, float roadSize, Vector3 lookPos, RoadType rt, bool br) {
 		Position = pos;
 		Direction = dir;
 		CurAngle = curAng;
 		RoadSize = roadSize;
 		LookPosition = lookPos;
 		BuildRoadType = rt;
+		Branched = br;
 	}
 
 	public Vector3 Position { get; set; }
@@ -48,9 +47,9 @@ public struct RoadAttributes {
 	
 	public Vector3 LookPosition { get; set; }
 	public float CurAngle { get; set; }
-	public Vector3 RoadSize { get; set; }
-
+	public float RoadSize { get; set; }
 	public RoadType BuildRoadType { get; set; }
+	public bool Branched { get; set; }
 
 	public override string ToString() => $"(Pos:{Position}, Dir:{Direction}, Angle: {CurAngle}, Road:{BuildRoadType})";
 }

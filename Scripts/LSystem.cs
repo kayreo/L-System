@@ -48,7 +48,7 @@ public partial class LSystem
 
 	// Init attributes
 	RuleAttributes initRuleAttr;
-	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, new Vector3(50.0f, 0.0f, 50.0f), Vector3.Zero, RoadType.NONE);
+	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, 50.0f, Vector3.Zero, RoadType.NONE, false);
 
 	// begin with a basic road symbol and an insertion query to determine if legal place to put road
 	public List<ISymbol> generated;
@@ -221,9 +221,19 @@ public partial class LSystem
 		// Increment position to next position
 		Vector3 nextPos = curRoadAttr.Position + curRoadAttr.RoadSize * curRoadAttr.Direction;
 
+		Vector3 nextLookPos = curRoadAttr.Position + curRoadAttr.RoadSize * curRoadAttr.Direction * 2;
+
 		// Adjust angle and dir for road
-		float nextAngR = getClosestDestAngle(nextPos, curRoadAttr.Direction);
+		float nextAngR = curRoadAttr.CurAngle;
+		
+		// Get next look dest
+		if (!curRoadAttr.Branched) {
+			nextLookPos = getClosestDest(nextPos).Position;
+			nextAngR = getClosestDestAngle(nextPos, curRoadAttr.Direction);
+		}
+
 		Vector3 nextDirR = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngR).Normalized();
+
 
 		// If the next position hits terrain, turn it into a tunnel
 		if (doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize)) {
@@ -242,6 +252,12 @@ public partial class LSystem
 			nextRoadType = RoadType.BRIDGE;
 		}
 
+		Vector3 nearestNormal = getNearestNormal(nextPos);
+
+		// Have the look position and direction vectors project onto the surface
+		nextLookPos = nextLookPos.Project(nearestNormal);
+		//nextDirR = nextDirR.Project(nearestNormal);
+
 		// Adjust angle and dir for branch 1
 		float nextAngB1 = curRoadAttr.CurAngle + (float)GD.RandRange(curRuleAttr.MinAngle, curRuleAttr.MaxAngle);
 		Vector3 nextDirB1 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB1).Normalized();
@@ -258,15 +274,15 @@ public partial class LSystem
 
 		// Generate roadAttr
 		// Branch 1: Try branching to one direction
-		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1, nextDirB1, nextAngB1, curRoadAttr.RoadSize, curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1 * 2, RoadType.NONE);
+		RoadAttributes newBranch1 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1, nextDirB1, nextAngB1, curRoadAttr.RoadSize, curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1 * 2, RoadType.NONE, true);
 		roadAttrs.Add(newBranch1);
 
 		// Branch 2: Try branching to another direction
-		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2, nextDirB2, nextAngB2, curRoadAttr.RoadSize, curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2 * 2, RoadType.NONE);
+		RoadAttributes newBranch2 = new RoadAttributes(curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2, nextDirB2, nextAngB2, curRoadAttr.RoadSize, curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2 * 2, RoadType.NONE, true);
 		roadAttrs.Add(newBranch2);
 
 		// Road: Try to move forward
-		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, curRoadAttr.RoadSize, getClosestDest(nextPos).Position, nextRoadType);
+		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, curRoadAttr.RoadSize, nextLookPos, nextRoadType, curRoadAttr.Branched);
 		roadAttrs.Add(newRoA);
 
 	}
@@ -312,13 +328,30 @@ public partial class LSystem
 		return closestSurface;
 	}
 
+		// Get nearest normal to the given position
+	private Vector3 getNearestNormal(Vector3 pos) {
+		float shortestDist = float.MaxValue;
+		Vector3 closestNormal = Vector3.Zero;
+		
+		Godot.Collections.Array heights = (Godot.Collections.Array)heightMap.SurfaceGetArrays(0)[1];
+		foreach (Variant h in heights) {
+			Vector3 curH = (Vector3)h;
+			float dist = pos.DistanceSquaredTo(curH);
+			if (dist < shortestDist) {
+				shortestDist = dist;
+				closestNormal = curH;
+			}
+		}
+		return closestNormal;
+	}
+
 	// Check if the current position is above sea level and not intersecting with land
 	private bool isAboveWater(Vector3 pos) {
 		return pos.Y >= SeaLevel;
 	}
 
 	// Check if the current position intersects with the terrain
-	private bool doesGroundIntersect(Vector3 pos, Vector3 dir, Vector3 size) {
+	private bool doesGroundIntersect(Vector3 pos, Vector3 dir, float size) {
 		// Check if a road is valid and can be placed here
 		// To get vertices of surface: heightMap.SurfaceGetArrays(0)[0]
 		// Get the nearest surface
@@ -353,9 +386,10 @@ public partial class LSystem
 			// Same position, or near position from a certain threshold
 			float t;
 			if (lineIntersectsLine(roadAttr.Position, roadAttr.Direction, pos, dir, out t) && 
-					t > -50.0 &&
-					t < 50.0) {
-			//	GD.Print("Intersecting at : ", intersectPos);
+					t != 0 &&
+					t > -roadAttr.RoadSize &&
+					t < roadAttr.RoadSize) {
+				//GD.Print("Intersecting at " + t);
 			//	GD.Print("Start: ", startPos, " End: ", endPos);
 				return false;
 			}
@@ -400,7 +434,7 @@ public partial class LSystem
 		float denom = pDirB.Z * pDirA.X - pDirB.X * pDirA.Z; 
 		//rResult = Vector3.Inf;
 		t = 0;
-		if (denom <= 0.00001f) { // Parallel?
+		if (denom <= 0.000001f) { // Parallel?
 			return false;
 		}
 		Vector3 v = pFromA - pFromB;
