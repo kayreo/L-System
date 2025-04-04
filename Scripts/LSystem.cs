@@ -351,10 +351,10 @@ public partial class LSystem
             Vector3 pos = roadLocations[i];
 			Vector3 dir = roadDirections[i];
 			// Same position, or near position from a certain threshold
-			Vector3 intersectPos;
-			if (lineIntersectsLine(roadAttr.Position, roadAttr.Direction, pos, dir, out intersectPos) && 
-					intersectPos > startPos &&
-					intersectPos < endPos) {
+			float t;
+			if (lineIntersectsLine(roadAttr.Position, roadAttr.Direction, pos, dir, out t) && 
+					t > -50.0 &&
+					t < 50.0) {
 			//	GD.Print("Intersecting at : ", intersectPos);
 			//	GD.Print("Start: ", startPos, " End: ", endPos);
 				return false;
@@ -377,7 +377,7 @@ public partial class LSystem
 			rResult = pFromA + t * pDirA;
 			return true;
 	*/
-	static bool lineIntersectsLine(Vector3 pFromA, Vector3 pDirA, Vector3 pFromB, Vector3 pDirB, out Vector3 rResult) {
+	static bool lineIntersectsLine(Vector3 pFromA, Vector3 pDirA, Vector3 pFromB, Vector3 pDirB, out float t) {
 		// See http://paulbourke.net/geometry/pointlineplane/
 		// rResult = Vector3.Inf;
 
@@ -395,14 +395,17 @@ public partial class LSystem
 		// rResult = pFromA + t * pDirA;
 		// return true;
 
+
+
 		float denom = pDirB.Z * pDirA.X - pDirB.X * pDirA.Z; 
-		rResult = Vector3.Inf;
+		//rResult = Vector3.Inf;
+		t = 0;
 		if (denom <= 0.00001f) { // Parallel?
 			return false;
 		}
 		Vector3 v = pFromA - pFromB;
-		float t = (pDirB.X * v.Z - pDirB.Z * v.X) / denom;
-		rResult = pFromA + t * pDirA;
+		t = (pDirB.X * v.Z - pDirB.Z * v.X) / denom;
+		//rResult = pFromA + t * pDirA;
 		return true;
 	}
 
