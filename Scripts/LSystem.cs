@@ -255,7 +255,7 @@ public partial class LSystem
 		Vector3 nearestNormal = getNearestNormal(nextPos);
 
 		// Have the look position and direction vectors project onto the surface
-		nextLookPos = nextLookPos.Project(nearestNormal);
+		//nextLookPos = nextLookPos.Project(nearestNormal);
 		//nextDirR = nextDirR.Project(nearestNormal);
 
 		// Adjust angle and dir for branch 1
@@ -430,6 +430,13 @@ public partial class LSystem
 		// return true;
 
 
+		// Maybe think about using curve3d
+
+		// Project lines onto a plane and check intersection, then compare with actual road segment
+
+		// Segment road to make it better adhere to surfaces
+
+		// Make roads smaller?!?!??
 
 		float denom = pDirB.Z * pDirA.X - pDirB.X * pDirA.Z; 
 		//rResult = Vector3.Inf;

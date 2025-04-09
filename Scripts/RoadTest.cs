@@ -47,7 +47,9 @@ public partial class RoadTest : Node3D
 	public LSystem L;
 
 	private Godot.Collections.Dictionary<string, Camera3D> cameras = new Godot.Collections.Dictionary<string, Camera3D>(); 
-
+	
+	private Godot.Collections.Array<Curve3D> curves = new Godot.Collections.Array<Curve3D>();
+	
 	/*
 	TODO: add terrain
 	add more functionality in godot editor
@@ -175,12 +177,12 @@ public partial class RoadTest : Node3D
 		// Create new road and set position
 		//GD.Print("Adding a road at: ", pos);
 		Node3D newRoad = (Node3D)Road.Instantiate();
-		//newRoad.Translate(pos);
+		newRoad.Translate(pos);
 
 		if (!pos.Equals(lookPos)) {
 			newRoad.LookAtFromPosition(pos, lookPos);
 		} else {
-			newRoad.Translate(pos);
+		//	newRoad.Translate(pos);
 		}
 		RoadList.AddChild(newRoad);
 	}
