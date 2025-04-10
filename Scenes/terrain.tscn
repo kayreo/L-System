@@ -58,6 +58,7 @@ material_override = SubResource("ShaderMaterial_qdyml")
 mesh = SubResource("ArrayMesh_kee6x")
 skeleton = NodePath("../..")
 script = ExtResource("2_45qsj")
+Size = 1028.0
 
 [node name="TerrainCollision" type="CollisionShape3D" parent="StaticBody3D"]
 visible = false

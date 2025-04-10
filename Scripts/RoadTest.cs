@@ -1,8 +1,13 @@
 using Godot;
+using System.Buffers;
 using System.Collections.Generic;
 
 public partial class RoadTest : Node3D
 {
+
+    private float progress = 0.0f;  // Progress along the curve (0 to 1)
+    private float speed = 0.1f;  // Speed at which the cylinder moves along the curve
+
 
 	[Export]
 	public PackedScene Road { get; set; }
@@ -20,6 +25,9 @@ public partial class RoadTest : Node3D
 	public PackedScene TunnelEnd { get; set; }
 
 	[Export]
+	public PackedScene Viz { get; set; }
+
+	[Export]
 	public PackedScene Destination { get; set; }
 
 	[Export(PropertyHint.Range, "0,50,1,or_greater")]
@@ -33,6 +41,8 @@ public partial class RoadTest : Node3D
 
 	[Export]
 	public bool ShowTerrain = true;
+
+	public Node3D VizList;
 
 	public Node3D RoadList;
 
@@ -49,7 +59,12 @@ public partial class RoadTest : Node3D
 	private Godot.Collections.Dictionary<string, Camera3D> cameras = new Godot.Collections.Dictionary<string, Camera3D>(); 
 	
 	private Godot.Collections.Array<Curve3D> curves = new Godot.Collections.Array<Curve3D>();
-	
+
+	private Curve3D curCurve;
+
+	private int i = 0;
+
+
 	/*
 	TODO: add terrain
 	add more functionality in godot editor
@@ -61,9 +76,12 @@ public partial class RoadTest : Node3D
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
+
+		// TODO: Maybe adjust this via editor and not code
 		// Prep nodes
 		RoadList = GetNode<Node3D>("Roads");
 		DestList = GetNode<Node3D>("Destinations");
+		VizList = GetNode<Node3D>("Visuals");
 		Bounds = GetNode<MeshInstance3D>("Bounds");
 		Terrain = GetNode<Node3D>("Terrain");
 		TerrainHeight = Terrain.GetNode<StaticBody3D>("StaticBody3D").GetNode<MeshInstance3D>("Terrain").Mesh;
@@ -77,34 +95,39 @@ public partial class RoadTest : Node3D
 
 		randomizeDests();
 
-		generateRoads();
+		generateRoads(i);
 	}
 
-	private void generateRoads() {
-		for (int i = 0; i < Iterations; i++) {
-			// clear road list
-			foreach (Node roadChild in RoadList.GetChildren()) {
-				roadChild.QueueFree();
-			}
-			interpret(L.buildRoads(i));
+	private void generateRoads(int i) {
+		// clear road list
+		foreach (Node roadChild in RoadList.GetChildren()) {
+			roadChild.QueueFree();
 		}
-		interpret(L.buildRoads(Iterations));
+		foreach (Node vizChild in VizList.GetChildren()) {
+			vizChild.GetNode<Path3D>("Path3D").Curve.ClearPoints();
+			vizChild.QueueFree();
+		}
+		curves.Clear();
+		curCurve = null;
+		interpret(L.buildRoads(i));
+		//interpret(L.buildRoads(Iterations));
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
 	public override void _Process(double delta)
 	{
+
 		if (Input.IsActionJustReleased("Reset"))
 		{
 			GetTree().ReloadCurrentScene();
 		}
 		if (Input.IsActionJustReleased("Progress")) {
+			i = 0;
 			Iterations++;
-			generateRoads();
 		}
 		if (Input.IsActionJustReleased("Regress")) {
+			i = 0;
 			Iterations--;
-			generateRoads();
 		}
 		if (Input.IsActionJustReleased("ChangeCam")) {
 			if (StartCamera == "Overhead") {
@@ -117,6 +140,11 @@ public partial class RoadTest : Node3D
 		if (Input.IsActionJustReleased("ToggleTerrain")) {
 			ShowTerrain = !ShowTerrain;
 			ToggleTerrain();
+		}
+
+		if (i <= Iterations) {
+			generateRoads(i);
+			i++;
 		}
 	}
 
@@ -132,6 +160,10 @@ public partial class RoadTest : Node3D
 	// TODO: make this better lol
 	// i want to make this a tree nav or something
 	private void interpret(List<ISymbol> axiom) {
+		CsgPolygon3D newRoadViz = (CsgPolygon3D)Viz.Instantiate();
+		newRoadViz.GetNode<Path3D>("Path3D").Curve = new Curve3D();
+		Curve3D curve = newRoadViz.GetNode<Path3D>("Path3D").Curve;
+		VizList.AddChild(newRoadViz);
 		foreach (ISymbol sym in axiom) {
 			//GD.Print("Interpreting: ", sym);
 			if (sym is Symbol) {
@@ -141,23 +173,28 @@ public partial class RoadTest : Node3D
 					// Create a road
 					case "A":
 						//GD.Print("Add a road");
+						addCurve(curve, castedSym.RoadAttr.Position);
 						addRoad(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 					case "Br":
+						addCurve(curve, castedSym.RoadAttr.Position);
 						addBridge(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 					case "T1":
+						addCurve(curve, castedSym.RoadAttr.Position);
 						addTunnelStart(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 					case "T2":
+						addCurve(curve, castedSym.RoadAttr.Position);
 						addTunnelEnd(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 					case "T":
+						addCurve(curve, castedSym.RoadAttr.Position);
 						addTunnel(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 				}
 			}
-			// Branch and save position
+			// // Branch and save position
 			else if (sym is SymBranch) {
 				SymBranch castedSym = (SymBranch)sym;
 				// Interpret symbols in this branch
@@ -170,6 +207,17 @@ public partial class RoadTest : Node3D
 	/* --------------------------- 
 	--------- Road Funcs ---------
 	------------------------------ */
+
+	private void addCurve(Curve3D curve, Vector3 pos) {
+		//Node3D newRoad = (Node3D)Road.Instantiate();
+		curve.AddPoint(pos);
+		//	newRoad.Translate(curve.GetPointOut(curve.PointCount - 1));
+		
+		//RoadList.AddChild(newRoad);
+		//GD.Print("Adding curve at: " + pos);
+		//GD.Print("My points: " + curCurve.PointCount);//.ToString());
+	}
+
 
 	// Draw a road forward
 	// Same as rule +F (Rotate by angle, draw a forward line by length)
@@ -224,7 +272,7 @@ public partial class RoadTest : Node3D
 	// Same as rule +F (Rotate by angle, draw a forward line by length)
 	private void addTunnelStart(Vector3 pos, Vector3 lookPos) {
 		// Create new road and set position
-		//GD.Print("Adding a road at: ", pos);
+		GD.Print("Adding a tunenl start at: ", pos);
 		Node3D newTunnelStart = (Node3D)TunnelStart.Instantiate();
 		//newRoad.Translate(pos);
 
@@ -263,7 +311,7 @@ public partial class RoadTest : Node3D
 			int z = GD.RandRange((int)-boundsSize.Z/3, (int)boundsSize.Z/3);
 			int y = 0;//(int)getNearestSurface(new Vector3(x, 0, z)).Y;
 			Vector3 placePos = new Vector3(x, y, z);
-			GD.Print("Placing at: ", placePos);
+			//GD.Print("Placing at: ", placePos);
 			addDest(placePos);
 		}
 	}

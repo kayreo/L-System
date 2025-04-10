@@ -1,0 +1,29 @@
+[gd_scene load_steps=4 format=3 uid="uid://d1a8mn2g4xwcg"]
+
+[ext_resource type="Shader" path="res://Scripts/viz.gdshader" id="1_ktl00"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_loa23"]
+render_priority = 0
+shader = ExtResource("1_ktl00")
+shader_parameter/region_min = Vector3(-1, 0, -1)
+shader_parameter/region_max = Vector3(1, 1, 1)
+
+[sub_resource type="Curve3D" id="Curve3D_dmnye"]
+
+[node name="Viz" type="CSGPolygon3D"]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0)
+mode = 2
+path_node = NodePath("Path3D")
+path_interval_type = 0
+path_interval = 1.0
+path_simplify_angle = 0.0
+path_rotation = 2
+path_local = true
+path_continuous_u = true
+path_u_distance = 1.0
+path_joined = false
+material = SubResource("ShaderMaterial_loa23")
+
+[node name="Path3D" type="Path3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.999975, -0.00710343, 0, 0.00710343, 0.999975, 0, 0, 0)
+curve = SubResource("Curve3D_dmnye")

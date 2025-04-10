@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 
 public partial class LSystem
@@ -48,7 +49,7 @@ public partial class LSystem
 
 	// Init attributes
 	RuleAttributes initRuleAttr;
-	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, 50.0f, Vector3.Zero, RoadType.NONE, false);
+	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, 25.0f, Vector3.Zero, RoadType.NONE, false);
 
 	// begin with a basic road symbol and an insertion query to determine if legal place to put road
 	public List<ISymbol> generated;
@@ -152,7 +153,7 @@ public partial class LSystem
 						// Use these for global goals param calls
 						RoadAttributes roA = castedSym.RoadAttr;
 						RuleAttributes ruA = castedSym.RuleAttr;
-						globalGoals(ruA, roA);
+						globalGoals(castedSym.Del, ruA, roA);
 						Symbol drawRoad = (Symbol)result[0];
 						drawRoad.RoadAttr = castedSym.RoadAttr;
 						drawRoad.RuleAttr = castedSym.RuleAttr;
@@ -207,19 +208,19 @@ public partial class LSystem
 	
 	// At this set of attributes, generate a set of 3 delays, ruleAttrs, and roadAttrs
 	// Then, use these values back in genGoals
-	private void globalGoals(RuleAttributes curRuleAttr, RoadAttributes curRoadAttr) {
+	private void globalGoals(int delay, RuleAttributes curRuleAttr, RoadAttributes curRoadAttr) {
 		delays.Clear();
 		ruleAttrs.Clear();
 		roadAttrs.Clear();
 
-		int delayB1 = 3;
-		int delayB2 = 3;
+		int delayB1 = 5;
+		int delayB2 = 5;
 		int delayR = 2;
 
 		RoadType nextRoadType = RoadType.NONE;
 
 		// Increment position to next position
-		Vector3 nextPos = curRoadAttr.Position + curRoadAttr.RoadSize * curRoadAttr.Direction;
+		Vector3 nextPos = getNearestSurface(curRoadAttr.Position + curRoadAttr.RoadSize * curRoadAttr.Direction);
 
 		Vector3 nextLookPos = curRoadAttr.Position + curRoadAttr.RoadSize * curRoadAttr.Direction * 2;
 
@@ -232,27 +233,52 @@ public partial class LSystem
 			nextAngR = getClosestDestAngle(nextPos, curRoadAttr.Direction);
 		}
 
+		else {
+			delayR = 0;
+		}
+
 		Vector3 nextDirR = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngR).Normalized();
 
 
+		// Project the road onto the nearest surface normal
+		Vector3 nearestNormal = getNearestNormal(nextPos);
+		Vector3 projectedDir = nextDirR.Project(nearestNormal);
+
+		// If the angle to change the direction is too steep, make a tunnel instead
+		float ang = nextDirR.AngleTo(projectedDir);
+
 		// If the next position hits terrain, turn it into a tunnel
-		if (doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize)) {
+		if ((ang < curRuleAttr.MinAngle || ang > curRuleAttr.MaxAngle) && doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize)) {
 			if (curRoadAttr.BuildRoadType != RoadType.TUNNELSTART) {
+				//GD.Print("TunnelingStart");
 				nextRoadType = RoadType.TUNNELSTART;
-			} else {
+			} 
+		}
+		else {
+			//nextLookPos = nextLookPos.Project(nearestNormal);
+			//nextDirR = projectedDir;
+		}
+
+	
+		// If the road intersects with ground but is already an existing tunnel, keep tunneling
+		if (curRoadAttr.BuildRoadType == RoadType.TUNNELSTART || curRoadAttr.BuildRoadType == RoadType.TUNNEL) {
+			if (doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize)) {
 				nextRoadType = RoadType.TUNNEL;
 			}
+			// If the road does not intersect the ground but is a tunnel, end tunneling
+			else if (!doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize)) {
+				nextRoadType = RoadType.TUNNELEND;
+			}
 		}
-		else if (!doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize) && curRoadAttr.BuildRoadType == RoadType.TUNNELSTART) {
-			nextRoadType = RoadType.TUNNELEND;
-		}
+
 		// If the next position is over water and not hitting terrain, turn it into a bridge
-		else if (isAboveWater(nextPos)) {
+		else if (!doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize) && isAboveWater(nextPos)) {
 			//GD.Print("Need a bridge");
 			nextRoadType = RoadType.BRIDGE;
 		}
 
-		Vector3 nearestNormal = getNearestNormal(nextPos);
+
+		
 
 		// Have the look position and direction vectors project onto the surface
 		//nextLookPos = nextLookPos.Project(nearestNormal);
@@ -355,18 +381,16 @@ public partial class LSystem
 		// Check if a road is valid and can be placed here
 		// To get vertices of surface: heightMap.SurfaceGetArrays(0)[0]
 		// Get the nearest surface
-		Vector3 checkHeight = getNearestSurface(pos);
-
 		// Check if the road is intersecting with surface
 		Vector3 startPos = pos - (dir * size);
 		Vector3 endPos = pos + (dir * size);
-
-		if (startPos > checkHeight && endPos < checkHeight) {
+		
+		if (startPos.Y > getNearestSurface(startPos).Y || endPos.Y < getNearestSurface(endPos).Y) {
 			// heightmap intersects with cur position road, need to be a tunnel
-			if (checkHeight.Y > pos.Y) {
-				//GD.Print("Intersecting");
+			//if (checkHeight.Y > pos.Y) {
+				GD.Print("Intersecting");
 				return true;
-			}	
+			//}	
 		}
 		return false;
 	}
