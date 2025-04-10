@@ -272,7 +272,7 @@ public partial class RoadTest : Node3D
 	// Same as rule +F (Rotate by angle, draw a forward line by length)
 	private void addTunnelStart(Vector3 pos, Vector3 lookPos) {
 		// Create new road and set position
-		GD.Print("Adding a tunenl start at: ", pos);
+		//GD.Print("Adding a tunnel start at: ", pos);
 		Node3D newTunnelStart = (Node3D)TunnelStart.Instantiate();
 		//newRoad.Translate(pos);
 

@@ -1,3 +1,4 @@
+using System;
 using Godot;
 
 public partial class Player : CharacterBody3D
@@ -7,10 +8,13 @@ public partial class Player : CharacterBody3D
 
 	public Camera3D cam;
 
+	private float pitch = 0.0f;
+
     public override void _Ready()
     {
         base._Ready();
-				cam = GetNode<Camera3D>("Camera3D");
+		cam = GetNode<Camera3D>("Camera3D");
+	
 	}
 
     public override void _PhysicsProcess(double delta)
@@ -27,6 +31,12 @@ public partial class Player : CharacterBody3D
 		}
 		else if (Input.IsActionJustReleased("Ascend") || Input.IsActionJustReleased("Descend")) {
 			velocity.Y = 0;
+		}
+		else if (Input.IsActionJustReleased("Escape")) {
+			Input.MouseMode = Input.MouseModeEnum.Visible;
+		}
+		else if (Input.IsActionJustReleased("Click")) {
+			Input.MouseMode = Input.MouseModeEnum.Captured;
 		}
 
 
@@ -54,8 +64,15 @@ public partial class Player : CharacterBody3D
 {
     if (@event is InputEventMouseMotion mouseEvent)
     {
+	
 		Rotate(Vector3.Up, -mouseEvent.Relative.X * 0.005f);
-		cam.RotateX(-mouseEvent.Relative.Y * 0.005f);	
+		
+		pitch -= mouseEvent.Relative.Y * 0.005f;
+
+		pitch = Mathf.Clamp(pitch, Mathf.DegToRad(-90), Mathf.DegToRad(90));
+
+		cam.Rotation = new Vector3(pitch, 0, 0);
+		
     }
 }
 }

@@ -49,10 +49,12 @@ public partial class LSystem
 
 	// Init attributes
 	RuleAttributes initRuleAttr;
-	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, 25.0f, Vector3.Zero, RoadType.NONE, false);
+	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, 50.0f, Vector3.Zero, RoadType.NONE, false);
 
 	// begin with a basic road symbol and an insertion query to determine if legal place to put road
 	public List<ISymbol> generated;
+
+	public List<List<ISymbol>> generatedSoFar = new List<List<ISymbol>>();
 
 	public LSystem(Node3D rList, Node3D dList, Mesh hm, string Rule, float seaLevel) {
 		DestList = dList;
@@ -64,6 +66,10 @@ public partial class LSystem
 		} else {
 			initRuleAttr = rules["None"];
 		}
+
+		generated = new List<ISymbol>{new Symbol("R", 0, initRuleAttr, initRoadAttr, StateType.UNASSIGNED), new Symbol("?I", 0, new RuleAttributes(), initRoadAttr, StateType.UNASSIGNED)};
+		generatedSoFar.Add(generated);
+
 		delays = new List<int>();
 		ruleAttrs = new List<RuleAttributes>();
 		roadAttrs = new List<RoadAttributes>();
@@ -79,22 +85,26 @@ public partial class LSystem
 		ruleAttrs = new List<RuleAttributes>();
 		roadAttrs = new List<RoadAttributes>();
 
-		//GD.Print("Running with an iteration of : " + Iterations);
-		generated = new List<ISymbol>{new Symbol("R", 0, initRuleAttr, initRoadAttr, StateType.UNASSIGNED), new Symbol("?I", 0, new RuleAttributes(), initRoadAttr, StateType.UNASSIGNED)};
+		// If the target axiom was already generated, return it
+		if (generatedSoFar.Count >= iterations + 1) {
+			return generatedSoFar[iterations];
+		}
+		// Otherwise, need to generate a new one
+		generated = generatedSoFar[generatedSoFar.Count - 1];
 
 		// First fill symbol vals using global goals, where you call queries to update your goals
 		// local constraints generation
 		// Next rewrite calls local constraints, which culls or rewrites rules based on queries made in global goals
-		for (int i = 0; i < iterations; i++) {
-			// GD.Print("----------------------------------------------------");
-			// GD.Print("--------------------", "ITERATION: ", i, "--------------------");
-			// GD.Print("----------------------------------------------------");
+		for (int i = generatedSoFar.Count; i < iterations; i++) {
+			//  GD.Print("----------------------------------------------------");
+			//  GD.Print("--------------------", "ITERATION: ", i, "--------------------");
+			//  GD.Print("----------------------------------------------------");
 			
 
 			localConstraints(generated);
 			// Generate ideal successor for next iteration
 			generate(generated);
-			
+			generatedSoFar.Add(generated);
 		}
 		//GD.Print("Generated: ", string.Join("\n\n", generated));
         return generated;
@@ -213,9 +223,9 @@ public partial class LSystem
 		ruleAttrs.Clear();
 		roadAttrs.Clear();
 
-		int delayB1 = 5;
-		int delayB2 = 5;
-		int delayR = 2;
+		int delayB1 = 3;
+		int delayB2 = 3;
+		int delayR = 3;
 
 		RoadType nextRoadType = RoadType.NONE;
 
@@ -388,7 +398,7 @@ public partial class LSystem
 		if (startPos.Y > getNearestSurface(startPos).Y || endPos.Y < getNearestSurface(endPos).Y) {
 			// heightmap intersects with cur position road, need to be a tunnel
 			//if (checkHeight.Y > pos.Y) {
-				GD.Print("Intersecting");
+				//GD.Print("Intersecting with ground");
 				return true;
 			//}	
 		}
@@ -407,14 +417,13 @@ public partial class LSystem
 		for (int i = 0; i < roadLocations.Count; i++) {
             Vector3 pos = roadLocations[i];
 			Vector3 dir = roadDirections[i];
+			Vector3 startPos2 = pos - (dir * roadAttr.RoadSize);
+			Vector3 endPos2 = pos + (dir * roadAttr.RoadSize);
 			// Same position, or near position from a certain threshold
-			float t;
-			if (lineIntersectsLine(roadAttr.Position, roadAttr.Direction, pos, dir, out t) && 
-					t != 0 &&
-					t > -roadAttr.RoadSize &&
-					t < roadAttr.RoadSize) {
-				//GD.Print("Intersecting at " + t);
-			//	GD.Print("Start: ", startPos, " End: ", endPos);
+			Vector3 rStart;
+			Vector3 rEnd;
+			if (lineIntersectsLine(startPos, endPos, startPos2, endPos2, out rStart, out rEnd) && 
+					rStart.DistanceTo(rEnd) <= Mathf.Epsilon) {
 				return false;
 			}
 		}
@@ -435,42 +444,50 @@ public partial class LSystem
 			rResult = pFromA + t * pDirA;
 			return true;
 	*/
-	static bool lineIntersectsLine(Vector3 pFromA, Vector3 pDirA, Vector3 pFromB, Vector3 pDirB, out float t) {
-		// See http://paulbourke.net/geometry/pointlineplane/
-		// rResult = Vector3.Inf;
-
-		// // Compute the cross product to check if the lines are parallel
-		// Vector3 crossDir = pDirA.Cross(pDirB);
-		// float denom = crossDir.LengthSquared(); // Equivalent to determinant in 3D
-		// if (denom <= 0.0001f) { // Parallel or nearly parallel?
-		// 	return false;
-		// }
-
-		// // Solve for t using determinant-based approach
-		// Vector3 v = pFromA - pFromB;
-		// float t = v.Cross(pDirB).Dot(crossDir) / denom;
-
-		// rResult = pFromA + t * pDirA;
-		// return true;
-
-
-		// Maybe think about using curve3d
-
-		// Project lines onto a plane and check intersection, then compare with actual road segment
-
-		// Segment road to make it better adhere to surfaces
-
-		// Make roads smaller?!?!??
-
-		float denom = pDirB.Z * pDirA.X - pDirB.X * pDirA.Z; 
-		//rResult = Vector3.Inf;
-		t = 0;
-		if (denom <= 0.000001f) { // Parallel?
+	public static bool lineIntersectsLine(Vector3 line1Point1, Vector3 line1Point2, 
+		Vector3 line2Point1, Vector3 line2Point2, out Vector3 resultSegmentPoint1, out Vector3 resultSegmentPoint2) {
+		// Algorithm is ported from the C algorithm of 
+		// Paul Bourke at http://local.wasp.uwa.edu.au/~pbourke/geometry/lineline3d/
+		resultSegmentPoint1 = Vector3.Zero;
+		resultSegmentPoint2 = Vector3.Zero;
+		
+		Vector3 p1 = line1Point1;
+		Vector3 p2 = line1Point2;
+		Vector3 p3 = line2Point1;
+		Vector3 p4 = line2Point2;
+		Vector3 p13 = p1 - p3;
+		Vector3 p43 = p4 - p3;
+		
+		if (p43.LengthSquared() < Mathf.Epsilon) {
 			return false;
 		}
-		Vector3 v = pFromA - pFromB;
-		t = (pDirB.X * v.Z - pDirB.Z * v.X) / denom;
-		//rResult = pFromA + t * pDirA;
+		Vector3 p21 = p2 - p1;
+		if (p21.LengthSquared() < Mathf.Epsilon) {
+			return false;
+		}
+		
+		double d1343 = p13.X * (double)p43.X + (double)p13.Y * p43.Y + (double)p13.Z * p43.Z;
+		double d4321 = p43.X * (double)p21.X + (double)p43.Y * p21.Y + (double)p43.Z * p21.Z;
+		double d1321 = p13.X * (double)p21.X + (double)p13.Y * p21.Y + (double)p13.Z * p21.Z;
+		double d4343 = p43.X * (double)p43.X + (double)p43.Y * p43.Y + (double)p43.Z * p43.Z;
+		double d2121 = p21.X * (double)p21.X + (double)p21.Y * p21.Y + (double)p21.Z * p21.Z;
+		
+		double denom = d2121 * d4343 - d4321 * d4321;
+		if (Math.Abs(denom) < Mathf.Epsilon) {
+			return false;
+		}
+		double numer = d1343 * d4321 - d1321 * d4343;
+		
+		double mua = numer / denom;
+		double mub = (d1343 + d4321 * (mua)) / d4343;
+		
+		resultSegmentPoint1.X = (float)(p1.X + mua * p21.X);
+		resultSegmentPoint1.Y = (float)(p1.Y + mua * p21.Y);
+		resultSegmentPoint1.Z = (float)(p1.Z + mua * p21.Z);
+		resultSegmentPoint2.X = (float)(p3.X + mub * p43.X);
+		resultSegmentPoint2.Y = (float)(p3.Y + mub * p43.Y);
+		resultSegmentPoint2.Z = (float)(p3.Z + mub * p43.Z);
+
 		return true;
 	}
 
