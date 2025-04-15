@@ -210,14 +210,18 @@ public partial class RoadTest : Node3D
 
 	private void addCurve(Curve3D curve, RoadAttributes roadAttr) {
 		//Node3D newRoad = (Node3D)Road.Instantiate();
+		for (int i = 0; i < curve.PointCount; i++) {
+			if (curve.GetPointPosition(i).Equals(roadAttr.Position)) {
+				return;
+			}
+		}
 		Vector3 start = getNearestNormal(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
-		Vector3 end = getNearestNormal(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
+		Vector3 end = getNearestNormal(roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize));
 		curve.AddPoint(roadAttr.Position, start, end);
-		
 		//	newRoad.Translate(curve.GetPointOut(curve.PointCount - 1));
 		
 		//RoadList.AddChild(newRoad);
-		//GD.Print("Adding curve at: " + pos);
+		// GD.Print("Adding curve at: " + roadAttr.Position);
 		//GD.Print("My points: " + curCurve.PointCount);//.ToString());
 	}
 
