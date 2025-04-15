@@ -173,24 +173,24 @@ public partial class RoadTest : Node3D
 					// Create a road
 					case "A":
 						//GD.Print("Add a road");
-						addCurve(curve, castedSym.RoadAttr.Position);
-						addRoad(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
+						addCurve(curve, castedSym.RoadAttr);
+						//addRoad(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 					case "Br":
-						addCurve(curve, castedSym.RoadAttr.Position);
-						addBridge(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
+						addCurve(curve, castedSym.RoadAttr);
+						//addBridge(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 					case "T1":
-						addCurve(curve, castedSym.RoadAttr.Position);
-						addTunnelStart(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
+						addCurve(curve, castedSym.RoadAttr);
+						//addTunnelStart(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 					case "T2":
-						addCurve(curve, castedSym.RoadAttr.Position);
-						addTunnelEnd(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
+						addCurve(curve, castedSym.RoadAttr);
+						//addTunnelEnd(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 					case "T":
-						addCurve(curve, castedSym.RoadAttr.Position);
-						addTunnel(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
+						addCurve(curve, castedSym.RoadAttr);
+						//addTunnel(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 				}
 			}
@@ -208,9 +208,12 @@ public partial class RoadTest : Node3D
 	--------- Road Funcs ---------
 	------------------------------ */
 
-	private void addCurve(Curve3D curve, Vector3 pos) {
+	private void addCurve(Curve3D curve, RoadAttributes roadAttr) {
 		//Node3D newRoad = (Node3D)Road.Instantiate();
-		curve.AddPoint(pos);
+		Vector3 start = getNearestNormal(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
+		Vector3 end = getNearestNormal(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
+		curve.AddPoint(roadAttr.Position, start, end);
+		
 		//	newRoad.Translate(curve.GetPointOut(curve.PointCount - 1));
 		
 		//RoadList.AddChild(newRoad);
@@ -218,6 +221,23 @@ public partial class RoadTest : Node3D
 		//GD.Print("My points: " + curCurve.PointCount);//.ToString());
 	}
 
+
+	// Get nearest normal to the given position
+	private Vector3 getNearestNormal(Vector3 pos) {
+		float shortestDist = float.MaxValue;
+		Vector3 closestNormal = Vector3.Zero;
+		
+		Godot.Collections.Array heights = (Godot.Collections.Array)TerrainHeight.SurfaceGetArrays(0)[1];
+		foreach (Variant h in heights) {
+			Vector3 curH = (Vector3)h;
+			float dist = pos.DistanceSquaredTo(curH);
+			if (dist < shortestDist) {
+				shortestDist = dist;
+				closestNormal = curH;
+			}
+		}
+		return closestNormal;
+	}
 
 	// Draw a road forward
 	// Same as rule +F (Rotate by angle, draw a forward line by length)
