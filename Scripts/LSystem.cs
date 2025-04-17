@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics.SymbolStore;
 using System.Linq;
 
 public partial class LSystem
@@ -49,7 +50,7 @@ public partial class LSystem
 
 	// Init attributes
 	RuleAttributes initRuleAttr;
-	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, 25.0f, Vector3.Zero, RoadType.NONE, false);
+	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, 25.0f, Vector3.Zero, RoadType.NONE, -1);
 
 	// begin with a basic road symbol and an insertion query to determine if legal place to put road
 	public List<ISymbol> generated;
@@ -107,7 +108,26 @@ public partial class LSystem
 			generatedSoFar.Add(generated);
 		}
 		//GD.Print("Generated: ", string.Join("\n\n", generated));
+
+		//GD.Print("Trimmed: " + string.Join("\n\n", trimGenerated(generated)));
+
         return generated;
+	}
+
+	private List<ISymbol> trimGenerated(List<ISymbol> generated) {
+		// Trim out the generated rules that aren't a draw rule
+		Godot.Collections.Array<String> drawRules = new Godot.Collections.Array<String>{"A", "Br", "T1", "T", "T2"};
+		for(int i = 0; i < generated.Count; i++) {
+			if (generated[i] is Symbol) {
+				if (drawRules.Contains(((Symbol)generated[i]).ID)) {
+					generated.Remove(generated[i]);
+				}
+			} else {
+				SymBranch symB = (SymBranch)generated[i];
+				trimGenerated(symB.Syms);
+			}
+		}
+		return generated;
 	}
 
 	/* --------------------------- 
@@ -226,6 +246,8 @@ public partial class LSystem
 		int delayB1 = 3;
 		int delayB2 = 3;
 		int delayR = 3;
+		
+		int delayBranch = curRoadAttr.Branched;
 
 		RoadType nextRoadType = RoadType.NONE;
 
@@ -238,7 +260,7 @@ public partial class LSystem
 		float nextAngR = curRoadAttr.CurAngle;
 		
 		// Get next look dest
-		if (!curRoadAttr.Branched) {
+		if (curRoadAttr.Branched < 0) {
 			nextLookPos = getClosestDest(nextPos).Position;
 			nextAngR = getClosestDestAngle(nextPos, curRoadAttr.Direction);
 		}
@@ -247,6 +269,11 @@ public partial class LSystem
 			delayB1 = 1;
 			delayB2 = 2;
 			nextAngR = 0;
+			delayBranch = curRoadAttr.Branched - 1;
+			if (curRoadAttr.Branched == 0) {
+				nextLookPos = getClosestDest(nextPos).Position;
+				nextAngR = getClosestDestAngle(nextPos, curRoadAttr.Direction);
+			}
 		}
 
 		Vector3 nextDirR = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngR).Normalized();
@@ -304,15 +331,15 @@ public partial class LSystem
 
 		// Generate roadAttr
 		// Branch 1: Try branching to one direction
-		RoadAttributes newBranch1 = new RoadAttributes(nextPos, nextDirB1, nextAngB1, curRoadAttr.RoadSize, curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1 * 2, RoadType.NONE, true);
+		RoadAttributes newBranch1 = new RoadAttributes(nextPos, nextDirB1, nextAngB1, curRoadAttr.RoadSize, curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1 * 2, RoadType.NONE, delayBranch);
 		roadAttrs.Add(newBranch1);
 
 		// Branch 2: Try branching to another direction
-		RoadAttributes newBranch2 = new RoadAttributes(nextPos, nextDirB2, nextAngB2, curRoadAttr.RoadSize, curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2 * 2, RoadType.NONE, true);
+		RoadAttributes newBranch2 = new RoadAttributes(nextPos, nextDirB2, nextAngB2, curRoadAttr.RoadSize, curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2 * 2, RoadType.NONE, delayBranch);
 		roadAttrs.Add(newBranch2);
 
 		// Road: Try to move forward
-		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, curRoadAttr.RoadSize, nextLookPos, nextRoadType, curRoadAttr.Branched);
+		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, curRoadAttr.RoadSize, nextLookPos, nextRoadType, delayBranch);
 		roadAttrs.Add(newRoA);
 
 	}

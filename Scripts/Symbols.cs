@@ -32,14 +32,14 @@ public float MinAngle { get; set; }
 
 // Struct for road attributes
 public struct RoadAttributes {
-	public RoadAttributes(Vector3 pos, Vector3 dir, float curAng, float roadSize, Vector3 lookPos, RoadType rt, bool br) {
+	public RoadAttributes(Vector3 pos, Vector3 dir, float curAng, float roadSize, Vector3 lookPos, RoadType rt, int branchDelay) {
 		Position = pos;
 		Direction = dir;
 		CurAngle = curAng;
 		RoadSize = roadSize;
 		LookPosition = lookPos;
 		BuildRoadType = rt;
-		Branched = br;
+		Branched = branchDelay;
 	}
 
 	public Vector3 Position { get; set; }
@@ -49,7 +49,7 @@ public struct RoadAttributes {
 	public float CurAngle { get; set; }
 	public float RoadSize { get; set; }
 	public RoadType BuildRoadType { get; set; }
-	public bool Branched { get; set; }
+	public int Branched { get; set; }
 
 	public override string ToString() => $"(Pos:{Position}, Dir:{Direction}, Angle: {CurAngle}, Road:{BuildRoadType})";
 }

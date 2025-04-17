@@ -62,6 +62,8 @@ public partial class RoadTest : Node3D
 
 	private Curve3D curCurve;
 
+	private Vector3 mostRecentPos;
+
 	private int i = 0;
 
 
@@ -143,6 +145,7 @@ public partial class RoadTest : Node3D
 		}
 
 		if (i <= Iterations) {
+			GD.Print();
 			generateRoads(i);
 			i++;
 		}
@@ -209,22 +212,43 @@ public partial class RoadTest : Node3D
 	------------------------------ */
 
 	private void addCurve(Curve3D curve, RoadAttributes roadAttr) {
+
 		//Node3D newRoad = (Node3D)Road.Instantiate();
 		for (int i = 0; i < curve.PointCount; i++) {
 			if (curve.GetPointPosition(i).Equals(roadAttr.Position)) {
 				return;
 			}
 		}
-		Vector3 start = getNearestNormal(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
-		Vector3 end = getNearestNormal(roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize));
-		curve.AddPoint(roadAttr.Position, start, end);
-		//	newRoad.Translate(curve.GetPointOut(curve.PointCount - 1));
-		
-		//RoadList.AddChild(newRoad);
-		// GD.Print("Adding curve at: " + roadAttr.Position);
-		//GD.Print("My points: " + curCurve.PointCount);//.ToString());
-	}
 
+		Vector3 start;
+		Vector3 end;
+
+
+		// Sample points between last point and most recent point
+		if (curve.PointCount > 1) {
+			// GD.Print("Cur pos: " + curve.GetPointPosition(curve.PointCount - 1));
+			// GD.Print("Next pos: " + roadAttr.Position);
+			Vector3 from = curve.GetPointPosition(curve.PointCount - 1);
+			Vector3 to = roadAttr.Position;
+			// Sample 10 times TODO: make this customizable
+			for (int i = 1; i <= 20; i++) {
+				int increment = i / 20;
+				Vector3 scaledP = getNearestSurface(from.Lerp(to, increment));
+				start = getNearestNormal(scaledP - (roadAttr.Direction * roadAttr.RoadSize));
+				end = getNearestNormal(scaledP + (roadAttr.Direction * roadAttr.RoadSize));
+				curve.AddPoint(scaledP, start, end);
+			}
+		} else {
+			// Placing point
+			start = getNearestNormal(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
+			end = getNearestNormal(roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize));
+			curve.AddPoint(roadAttr.Position, start, end);
+		}
+		//	newRoad.Translate(curve.GetPointOut(curve.PointCount - 1));
+		//RoadList.AddChild(newRoad);
+		// GD.Print("Most recent point: " + curve.GetPointPosition(curve.PointCount - 1));
+		//GD.Print("My points: ");//.ToString());
+	}
 
 	// Get nearest normal to the given position
 	private Vector3 getNearestNormal(Vector3 pos) {

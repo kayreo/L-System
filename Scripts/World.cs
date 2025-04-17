@@ -67,6 +67,20 @@ public partial class World : Node3D
 		return null;
 	}
 
+/*
+
+Work on segmenting visuals
+
+Curve shader
+
+try to place curve
+check surface data
+if not fulfilled, split into multiple curve segments
+if fine, place curve
+
+*/
+
+
 	private void updateChunks() {
 		Vector3 playerPos = player.Position;
 		float xStart = playerPos.X - chunkAmount * 0.5f;
