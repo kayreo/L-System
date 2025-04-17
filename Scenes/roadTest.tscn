@@ -28,7 +28,7 @@ Tunnel = ExtResource("5_qs7o4")
 TunnelEnd = ExtResource("5_8c72f")
 Viz = ExtResource("7_vytjq")
 Destination = ExtResource("3_5hqd3")
-Iterations = 20
+Iterations = 10
 ShowTerrain = false
 
 [node name="Camera3D" type="Camera3D" parent="."]

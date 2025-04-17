@@ -73,8 +73,8 @@ class RuleRBranch : Rule {
         //Two branch modules, B and a road module R plus the insertion query ?I are created.
         List<ISymbol> result = new List<ISymbol>{
             new Symbol(nextSymbol, 0, new RuleAttributes(), savedAttr, StateType.UNASSIGNED),
-            new Symbol("B", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, 5), StateType.UNASSIGNED),       // Branch 1
-            new Symbol("B", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, 5), StateType.UNASSIGNED),       // Branch 2
+            new Symbol("B", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, 3), StateType.UNASSIGNED),       // Branch 1
+            new Symbol("B", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, 3), StateType.UNASSIGNED),       // Branch 2
             new Symbol("R", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, -1), StateType.UNASSIGNED),       // Road
             new Symbol("?I", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, -1), StateType.UNASSIGNED)       // Insertion query
         };

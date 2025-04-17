@@ -80,14 +80,11 @@ public partial class LSystem
 
 	// Builds the list of symbols that will then be used to build the road system
 	public List<ISymbol> buildRoads(int iterations) {
-		roadLocations = new List<Vector3>();
-        roadDirections = new List<Vector3>();
-		delays = new List<int>();
-		ruleAttrs = new List<RuleAttributes>();
-		roadAttrs = new List<RoadAttributes>();
+
 
 		// If the target axiom was already generated, return it
 		if (generatedSoFar.Count >= iterations + 1) {
+			GD.Print("Returning generated for: " + iterations);
 			return generatedSoFar[iterations];
 		}
 		// Otherwise, need to generate a new one
@@ -97,6 +94,11 @@ public partial class LSystem
 		// local constraints generation
 		// Next rewrite calls local constraints, which culls or rewrites rules based on queries made in global goals
 		for (int i = generatedSoFar.Count; i < iterations; i++) {
+			roadLocations = new List<Vector3>();
+			roadDirections = new List<Vector3>();
+			delays = new List<int>();
+			ruleAttrs = new List<RuleAttributes>();
+			roadAttrs = new List<RoadAttributes>();
 			//  GD.Print("----------------------------------------------------");
 			//  GD.Print("--------------------", "ITERATION: ", i, "--------------------");
 			//  GD.Print("----------------------------------------------------");
@@ -108,9 +110,7 @@ public partial class LSystem
 			generatedSoFar.Add(generated);
 		}
 		//GD.Print("Generated: ", string.Join("\n\n", generated));
-
-		//GD.Print("Trimmed: " + string.Join("\n\n", trimGenerated(generated)));
-
+		GD.Print("Length: " + generatedSoFar.Count);
         return generated;
 	}
 
@@ -281,22 +281,15 @@ public partial class LSystem
 		// Project the road onto the nearest surface normal
 		Vector3 nearestNormal = getNearestNormal(nextPos);
 		Vector3 projectedDir = nextDirR.Project(nearestNormal);
-
-		// If the angle to change the direction is too steep, make a tunnel instead
 		float ang = nextDirR.AngleTo(projectedDir);
 
-		// If the next position hits terrain, turn it into a tunnel
+		// If the next position hits terrain and the angle is too steep, turn it into a tunnel
 		if ((ang < curRuleAttr.MinAngle || ang > curRuleAttr.MaxAngle) && doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize)) {
 			if (curRoadAttr.BuildRoadType != RoadType.TUNNELSTART) {
 				//GD.Print("TunnelingStart");
 				nextRoadType = RoadType.TUNNELSTART;
 			} 
 		}
-		else {
-			//nextLookPos = nextLookPos.Project(nearestNormal);
-			//nextDirR = projectedDir;
-		}
-
 	
 		// If the road intersects with ground but is already an existing tunnel, keep tunneling
 		if (curRoadAttr.BuildRoadType == RoadType.TUNNELSTART || curRoadAttr.BuildRoadType == RoadType.TUNNEL) {
@@ -311,7 +304,6 @@ public partial class LSystem
 
 		// If the next position is over water and not hitting terrain, turn it into a bridge
 		else if (!doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize) && isAboveWater(nextPos)) {
-			//GD.Print("Need a bridge");
 			nextRoadType = RoadType.BRIDGE;
 		}
 
@@ -323,8 +315,7 @@ public partial class LSystem
 		float nextAngB2 = curRoadAttr.CurAngle - (float)GD.RandRange(curRuleAttr.MinAngle, curRuleAttr.MaxAngle);
 		Vector3 nextDirB2 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB2).Normalized();
 
-		// Generate delays
-		// arbitrary rn
+		// Add delays to array
 		delays.Add(delayB1);
 		delays.Add(delayB2);
 		delays.Add(delayR);
@@ -385,7 +376,7 @@ public partial class LSystem
 		return closestSurface;
 	}
 
-		// Get nearest normal to the given position
+	// Get nearest normal to the given position
 	private Vector3 getNearestNormal(Vector3 pos) {
 		float shortestDist = float.MaxValue;
 		Vector3 closestNormal = Vector3.Zero;

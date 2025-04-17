@@ -97,7 +97,7 @@ public partial class RoadTest : Node3D
 
 		randomizeDests();
 
-		generateRoads(i);
+		generateRoads(Iterations);
 	}
 
 	private void generateRoads(int i) {
@@ -145,8 +145,7 @@ public partial class RoadTest : Node3D
 		}
 
 		if (i <= Iterations) {
-			GD.Print();
-			generateRoads(i);
+			//generateRoads(i);
 			i++;
 		}
 	}
@@ -176,23 +175,23 @@ public partial class RoadTest : Node3D
 					// Create a road
 					case "A":
 						//GD.Print("Add a road");
-						addCurve(curve, castedSym.RoadAttr);
+						addCurve(newRoadViz, castedSym.RoadAttr);
 						//addRoad(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 					case "Br":
-						addCurve(curve, castedSym.RoadAttr);
+						addCurve(newRoadViz, castedSym.RoadAttr);
 						//addBridge(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 					case "T1":
-						addCurve(curve, castedSym.RoadAttr);
+						addCurve(newRoadViz, castedSym.RoadAttr);
 						//addTunnelStart(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 					case "T2":
-						addCurve(curve, castedSym.RoadAttr);
+						addCurve(newRoadViz, castedSym.RoadAttr);
 						//addTunnelEnd(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 					case "T":
-						addCurve(curve, castedSym.RoadAttr);
+						addCurve(newRoadViz, castedSym.RoadAttr);
 						//addTunnel(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
 						break;
 				}
@@ -211,8 +210,8 @@ public partial class RoadTest : Node3D
 	--------- Road Funcs ---------
 	------------------------------ */
 
-	private void addCurve(Curve3D curve, RoadAttributes roadAttr) {
-
+	private void addCurve(CsgPolygon3D poly, RoadAttributes roadAttr) {
+		Curve3D curve = poly.GetNode<Path3D>("Path3D").Curve;
 		//Node3D newRoad = (Node3D)Road.Instantiate();
 		for (int i = 0; i < curve.PointCount; i++) {
 			if (curve.GetPointPosition(i).Equals(roadAttr.Position)) {
@@ -243,6 +242,7 @@ public partial class RoadTest : Node3D
 			start = getNearestNormal(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
 			end = getNearestNormal(roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize));
 			curve.AddPoint(roadAttr.Position, start, end);
+			(poly.Material as ShaderMaterial).SetShaderParameter("type", (int)roadAttr.BuildRoadType);
 		}
 		//	newRoad.Translate(curve.GetPointOut(curve.PointCount - 1));
 		//RoadList.AddChild(newRoad);
@@ -357,7 +357,7 @@ public partial class RoadTest : Node3D
 		for (int i = 0; i < 3; i++) {
 			int x = GD.RandRange((int)-boundsSize.X/3, (int)boundsSize.X/3);
 			int z = GD.RandRange((int)-boundsSize.Z/3, (int)boundsSize.Z/3);
-			int y = 0;//(int)getNearestSurface(new Vector3(x, 0, z)).Y;
+			int y = (int)getNearestSurface(new Vector3(x, 0, z)).Y;
 			Vector3 placePos = new Vector3(x, y, z);
 			//GD.Print("Placing at: ", placePos);
 			addDest(placePos);
