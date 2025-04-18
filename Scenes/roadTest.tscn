@@ -28,7 +28,7 @@ Tunnel = ExtResource("5_qs7o4")
 TunnelEnd = ExtResource("5_8c72f")
 Viz = ExtResource("7_vytjq")
 Destination = ExtResource("3_5hqd3")
-Iterations = 10
+Iterations = 40
 ShowTerrain = false
 
 [node name="Camera3D" type="Camera3D" parent="."]
@@ -56,6 +56,7 @@ transform = Transform3D(0.493236, -0.291728, 0.81952, -0.282564, 0.837274, 0.468
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 370.604, 0)
 
 [node name="Terrain" parent="." instance=ExtResource("4_8pg8q")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.317444, -68.3702, 90.4028)
 
 [node name="Visuals" type="Node3D" parent="."]
 

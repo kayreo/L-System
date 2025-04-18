@@ -76,7 +76,7 @@ class RuleRBranch : Rule {
             new Symbol("B", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, 3), StateType.UNASSIGNED),       // Branch 1
             new Symbol("B", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, 3), StateType.UNASSIGNED),       // Branch 2
             new Symbol("R", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, -1), StateType.UNASSIGNED),       // Road
-            new Symbol("?I", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, -1), StateType.UNASSIGNED)       // Insertion query
+            //new Symbol("?I", 0, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, -1), StateType.UNASSIGNED)       // Insertion query
         };
         return result;
     }
@@ -194,74 +194,7 @@ class RuleBDel : Rule {
     }
 }
 
-/* --------------------------- 
----------- I Rules -----------
------------------------------- */
-
-/* p8: ?I(roadAttr,state) : state==UNASSIGNED
-{localConstraints(roadAttr) adjusts the parameters for:
-    state, roadAttr
-} → ?I(roadAttr, state)*/
-class RuleI : Rule {
-    private String mySymbol = "?I";
-    
-	private Dictionary<string, int> vars = new Dictionary<string, int>{
-		{"state", -1},
-	};
-
-    private RuleAttributes ruleAttr;
-
-    public override bool checkSymbol(Symbol symbol)
-    {
-        if (mySymbol == symbol.ID) {
-            vars["state"] = (int)symbol.State;
-            ruleAttr = symbol.RuleAttr;
-            return true;
-        }
-        return false;
-    }
-
-    public override bool checkCond()
-    {
-        return vars["state"] != (int)StateType.UNASSIGNED;
-    }
-
-    public override List<ISymbol> genOutput() {
-        List<ISymbol> result = new List<ISymbol>();
-        Symbol newISym = new Symbol("?I", -1, ruleAttr, new RoadAttributes(Vector3.Zero, Vector3.Zero, 0f, 0f, Vector3.Zero, RoadType.NONE, -1), StateType.UNASSIGNED);
-        result.Add(newISym);
-        return result;
-    }
-}
-
-// Insertion query deletion rule
-// p9: ?I(roadAttr,state) : state!=UNASSIGNED → ε
-class RuleIDel : Rule {
-    private String mySymbol = "?I";
-	private Dictionary<string, int> vars = new Dictionary<string, int>{
-		{"state", -1}
-	};
-
-    public override bool checkSymbol(Symbol symbol)
-    {
-        if (mySymbol == symbol.ID) {
-            vars["state"] = (int)symbol.State;
-            return true;
-        }
-        return false;
-    }
-
-    public override bool checkCond()
-    {
-        return vars["state"] != (int)StateType.UNASSIGNED;
-    }
-
-    public override List<ISymbol> genOutput() {
-        return null;
-    }
-}
-
-/* --------------------------- 
+/* ---------------------------
 ---------- Other Rules -------
 ------------------------------ */
 // If you see an A symbol keep it

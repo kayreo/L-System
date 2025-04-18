@@ -223,35 +223,36 @@ public partial class RoadTest : Node3D
 
 
 		// Sample points between last point and most recent point
-		if (curve.PointCount > 1) {
-			// GD.Print("Cur pos: " + curve.GetPointPosition(curve.PointCount - 1));
-			// GD.Print("Next pos: " + roadAttr.Position);
-			Vector3 from = curve.GetPointPosition(curve.PointCount - 1);
-			Vector3 to = roadAttr.Position;
-			// Sample 10 times TODO: make this customizable
-			for (int i = 1; i <= 20; i++) {
-				int increment = i / 20;
-				Vector3 scaledP = getNearestSurface(from.Lerp(to, increment));
-				start = getNearestNormal(scaledP - (roadAttr.Direction * roadAttr.RoadSize));
-				end = getNearestNormal(scaledP + (roadAttr.Direction * roadAttr.RoadSize));
-				curve.AddPoint(scaledP, start, end);
-			}
-		} else {
+		// if (curve.PointCount > 1) {
+		// 	// // GD.Print("Cur pos: " + curve.GetPointPosition(curve.PointCount - 1));
+		// 	// // GD.Print("Next pos: " + roadAttr.Position);
+		// 	// Vector3 from = curve.GetPointPosition(curve.PointCount - 1);
+		// 	// Vector3 to = roadAttr.Position;
+		// 	// // Sample 10 times TODO: make this customizable
+		// 	// for (int i = 1; i <= 20; i++) {
+		// 	// 	int increment = i / 20;
+		// 	// 	Vector3 scaledP = getNearestSurface(from.Lerp(to, increment));
+		// 	// 	start = getNearestNormal(scaledP - (roadAttr.Direction * roadAttr.RoadSize));
+		// 	// 	end = getNearestNormal(scaledP + (roadAttr.Direction * roadAttr.RoadSize));
+		// 	// 	curve.AddPoint(scaledP, start, end);
+		// 	// }
+		// } else {
+
+
 			// Placing point
 			start = getNearestNormal(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
 			end = getNearestNormal(roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize));
 			curve.AddPoint(roadAttr.Position, start, end);
-			(poly.Material as ShaderMaterial).SetShaderParameter("type", (int)roadAttr.BuildRoadType);
+			(poly.Material as ShaderMaterial).SetShaderParameter("type", (float)roadAttr.BuildRoadType);
+			(poly.Material as ShaderMaterial).SetShaderParameter("closestPoint", curve.GetClosestPoint(roadAttr.Position));
+			(poly.Material as ShaderMaterial).SetShaderParameter("length", roadAttr.RoadSize);
 			// pass in point and length
 			// start of entire curve
 			// value = point - start / length
 			// color = vec3(value)
 			//curve.GetClosestPoint()
-		}
-		//	newRoad.Translate(curve.GetPointOut(curve.PointCount - 1));
-		//RoadList.AddChild(newRoad);
-		// GD.Print("Most recent point: " + curve.GetPointPosition(curve.PointCount - 1));
-		//GD.Print("My points: ");//.ToString());
+
+		//}
 	}
 
 	// Get nearest normal to the given position
@@ -355,6 +356,14 @@ public partial class RoadTest : Node3D
 	/* --------------------------- 
 	--------- Dest Funcs ---------
 	------------------------------ */
+
+
+	/*
+	TODO: Hardcoded values for position for debugging:
+		int x = -100 * i;
+		int y = 200 * i;
+		int z = -300 * i;
+	*/
 
 	private void randomizeDests() {
 		Vector3 boundsSize = Bounds.GetAabb().Size;

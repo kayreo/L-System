@@ -7,7 +7,10 @@ render_priority = 0
 shader = ExtResource("1_ktl00")
 shader_parameter/region_min = Vector3(-1, 0, -1)
 shader_parameter/region_max = Vector3(1, 1, 1)
-shader_parameter/type = 0
+shader_parameter/type = 0.0
+shader_parameter/length = 0.0
+shader_parameter/closestPoint = null
+shader_parameter/color = 1.0
 
 [sub_resource type="Curve3D" id="Curve3D_dmnye"]
 

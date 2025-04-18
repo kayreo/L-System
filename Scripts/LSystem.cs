@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data.Common;
 using System.Diagnostics.SymbolStore;
 using System.Linq;
 
@@ -12,9 +13,7 @@ public partial class LSystem
 		{"RuleRBranch", new RuleRBranch()},
 		{"RuleRDel", new RuleRDel()},
 		{"RuleB", new RuleB()},
-		{"RuleBDel", new RuleBDel()},
-		{"RuleI", new RuleI()},
-		{"RuleIDel", new RuleIDel()}
+		{"RuleBDel", new RuleBDel()}
 	};
 
 	public Node3D RoadList;
@@ -68,7 +67,7 @@ public partial class LSystem
 			initRuleAttr = rules["None"];
 		}
 
-		generated = new List<ISymbol>{new Symbol("R", 0, initRuleAttr, initRoadAttr, StateType.UNASSIGNED), new Symbol("?I", 0, new RuleAttributes(), initRoadAttr, StateType.UNASSIGNED)};
+		generated = new List<ISymbol>{new Symbol("R", 0, initRuleAttr, initRoadAttr, StateType.UNASSIGNED)};
 		generatedSoFar.Add(generated);
 
 		delays = new List<int>();
@@ -109,25 +108,9 @@ public partial class LSystem
 			generate(generated);
 			generatedSoFar.Add(generated);
 		}
+		//GD.Print("Length: " + generatedSoFar.Count);
 		//GD.Print("Generated: ", string.Join("\n\n", generated));
-		GD.Print("Length: " + generatedSoFar.Count);
         return generated;
-	}
-
-	private List<ISymbol> trimGenerated(List<ISymbol> generated) {
-		// Trim out the generated rules that aren't a draw rule
-		Godot.Collections.Array<String> drawRules = new Godot.Collections.Array<String>{"A", "Br", "T1", "T", "T2"};
-		for(int i = 0; i < generated.Count; i++) {
-			if (generated[i] is Symbol) {
-				if (drawRules.Contains(((Symbol)generated[i]).ID)) {
-					generated.Remove(generated[i]);
-				}
-			} else {
-				SymBranch symB = (SymBranch)generated[i];
-				trimGenerated(symB.Syms);
-			}
-		}
-		return generated;
 	}
 
 	/* --------------------------- 
@@ -161,53 +144,45 @@ public partial class LSystem
 			Rule curRule = Rules[r];
 			// Check if symbol matches rule and any conditions
 			if (sym is Symbol) {				
+				
 				// General rewrites
 				Symbol castedSym = (Symbol) sym;
+
 				if (castedSym.ID == "A" || castedSym.ID == "Br" || castedSym.ID == "T" || castedSym.ID == "T1" || castedSym.ID == "T2") {
 					result = new List<ISymbol>{castedSym};
 				}
-				// Check LC and RC
-				// Check if an R symbol has an ?I query to its right
-				if (castedSym.ID == "R" && axiom[i + 1] is Symbol) {
-					Symbol genCast = (Symbol)axiom[i + 1];
-					if (genCast.ID == "?I") {
-						// Pass inquery's state to road to check
-						castedSym.State = genCast.State;
-					}
-				}
+
 				if (curRule.checkSymbol(castedSym) && curRule.checkCond()) {
 					result = curRule.genOutput();
-					//globalGoals(castedSym.RoadAttr, castedSym.RuleAttr)
 					// If this is the branch rule, call global goals and populate params
 					if (r == "RuleRBranch") {
 						// Use these for global goals param calls
 						RoadAttributes roA = castedSym.RoadAttr;
 						RuleAttributes ruA = castedSym.RuleAttr;
 						globalGoals(castedSym.Del, ruA, roA);
-						Symbol drawRoad = (Symbol)result[0];
+
+						Symbol drawRoad = (Symbol)result[0];				// Set the road to be drawn's attributes
 						drawRoad.RoadAttr = castedSym.RoadAttr;
 						drawRoad.RuleAttr = castedSym.RuleAttr;
 						result[0] = drawRoad;
-						for (int j = 1; j < result.Count - 1; j++) {
+
+						for (int j = 1; j < result.Count; j++) {			// Set attributes for B1, B2, and R
 							Symbol castedOutput = (Symbol)result[j];
 							castedOutput.Del = delays[j - 1];
 							castedOutput.RoadAttr = roadAttrs[j - 1];
 							result[j] = castedOutput;
 						}
-						Symbol iModule = (Symbol)result[result.Count - 1];
-						iModule.RoadAttr = roadAttrs[2];
-						result[result.Count - 1] = iModule;
 					}
 
 				}
-			} else if (sym is SymBranch) {								// Branch rewrites
-				SymBranch castedSym = (SymBranch)sym;					// Sym to rewrite
-				SymBranch newBranch = new SymBranch();					// Resulting branch
-				List<ISymbol> branchResults;							// Store rewritten symbols here
-				for (int j = 0; j < castedSym.Syms.Count; j++) {		// Recurisvely rewrite syms in branch
+			} else if (sym is SymBranch) {									// Branch rewrites
+				SymBranch castedSym = (SymBranch)sym;						// Sym to rewrite
+				SymBranch newBranch = new SymBranch();						// Resulting branch
+				List<ISymbol> branchResults;								// Store rewritten symbols here
+				for (int j = 0; j < castedSym.Syms.Count; j++) {			// Recurisvely rewrite syms in branch
 					branchResults = rewrite(castedSym.Syms, castedSym.Syms[j], j);
 					if (branchResults != null) {
-						foreach (ISymbol genSym in branchResults) {		// Add to resulting branch's syms
+						foreach (ISymbol genSym in branchResults) {			// Add to resulting branch's syms
 							newBranch.Syms.Add(genSym);
 						}
 					}
@@ -249,8 +224,6 @@ public partial class LSystem
 		
 		int delayBranch = curRoadAttr.Branched;
 
-		RoadType nextRoadType = RoadType.NONE;
-
 		// Increment position to next position
 		Vector3 nextPos = getNearestSurface(curRoadAttr.Position + curRoadAttr.RoadSize * curRoadAttr.Direction);
 
@@ -278,35 +251,6 @@ public partial class LSystem
 
 		Vector3 nextDirR = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngR).Normalized();
 
-		// Project the road onto the nearest surface normal
-		Vector3 nearestNormal = getNearestNormal(nextPos);
-		Vector3 projectedDir = nextDirR.Project(nearestNormal);
-		float ang = nextDirR.AngleTo(projectedDir);
-
-		// If the next position hits terrain and the angle is too steep, turn it into a tunnel
-		if ((ang < curRuleAttr.MinAngle || ang > curRuleAttr.MaxAngle) && doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize)) {
-			if (curRoadAttr.BuildRoadType != RoadType.TUNNELSTART) {
-				//GD.Print("TunnelingStart");
-				nextRoadType = RoadType.TUNNELSTART;
-			} 
-		}
-	
-		// If the road intersects with ground but is already an existing tunnel, keep tunneling
-		if (curRoadAttr.BuildRoadType == RoadType.TUNNELSTART || curRoadAttr.BuildRoadType == RoadType.TUNNEL) {
-			if (doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize)) {
-				nextRoadType = RoadType.TUNNEL;
-			}
-			// If the road does not intersect the ground but is a tunnel, end tunneling
-			else if (!doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize)) {
-				nextRoadType = RoadType.TUNNELEND;
-			}
-		}
-
-		// If the next position is over water and not hitting terrain, turn it into a bridge
-		else if (!doesGroundIntersect(nextPos, nextDirR, curRoadAttr.RoadSize) && isAboveWater(nextPos)) {
-			nextRoadType = RoadType.BRIDGE;
-		}
-
 		// Adjust angle and dir for branch 1
 		float nextAngB1 = curRoadAttr.CurAngle + (float)GD.RandRange(curRuleAttr.MinAngle, curRuleAttr.MaxAngle);
 		Vector3 nextDirB1 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB1).Normalized();
@@ -330,16 +274,17 @@ public partial class LSystem
 		roadAttrs.Add(newBranch2);
 
 		// Road: Try to move forward
-		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, curRoadAttr.RoadSize, nextLookPos, nextRoadType, delayBranch);
+		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, curRoadAttr.RoadSize, nextLookPos, curRoadAttr.BuildRoadType, delayBranch);
 		roadAttrs.Add(newRoA);
-
 	}
 
+	// Place down a test road and check environment. If valid environment, set to successfully built
 	private void localConstraints(List<ISymbol> axiom) {
 		for (int i = 0; i < axiom.Count; i++) {
 			if (axiom[i] is Symbol) {
 				Symbol castedSym = (Symbol)axiom[i];
-				if (castedSym.ID == "?I") { 
+				if (castedSym.ID == "R") { 
+					castedSym = adjustAttrs(castedSym);
 					if (insertQuery(castedSym.RoadAttr)) {
 						castedSym.State = StateType.SUCCESS;
 					} else {
@@ -358,6 +303,70 @@ public partial class LSystem
 	/* --------------------------- 
 	-------- Query Funcs ---------
 	------------------------------ */
+
+	// Queries whether the road can be inserted
+	// checks for legal terrain, or if road will intersect with water, mountains, etc.
+	private bool insertQuery(RoadAttributes roadAttr) {
+		//GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition + " With angle : " + roadAttr.Direction);
+		//GD.Print("Road locs: " +  string.Join("\n", roadLocations));
+		Vector3 startPos = roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize);
+		Vector3 endPos = roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize);
+
+		for (int i = 0; i < roadLocations.Count; i++) {
+            Vector3 pos = roadLocations[i];
+			Vector3 dir = roadDirections[i];
+			Vector3 startPos2 = pos - (dir * roadAttr.RoadSize);
+			Vector3 endPos2 = pos + (dir * roadAttr.RoadSize);
+			// Same position, or near position from a certain threshold
+			Vector3 rStart;
+			Vector3 rEnd;
+			if (lineIntersectsLine(startPos, endPos, startPos2, endPos2, out rStart, out rEnd) && 
+					rStart.DistanceTo(rEnd) <= Mathf.Epsilon) {
+				return false;
+			}
+		}
+		roadLocations.Add(roadAttr.Position);
+        roadDirections.Add(roadAttr.Direction);
+		return true;
+		
+	}
+
+	// Adjust road attribute values based on local environment
+	private Symbol adjustAttrs(Symbol sym) {
+		// Get the attribute from the passed in symbol
+		RoadAttributes roadAttr = sym.RoadAttr;
+
+		// Project the road onto the nearest surface normal
+		Vector3 nearestNormal = getNearestNormal(roadAttr.Position);
+		Vector3 projectedDir = roadAttr.Direction.Project(nearestNormal);
+		float ang = roadAttr.Direction.AngleTo(projectedDir);
+
+		// If the current road is in the middle of tuenneling, check if tunnel needs to continue or stop
+		if (roadAttr.BuildRoadType == RoadType.TUNNELSTART || roadAttr.BuildRoadType == RoadType.TUNNEL) {
+			if (doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize)) {
+				roadAttr.BuildRoadType = RoadType.TUNNEL;
+			}
+			// If the road does not intersect the ground but is a tunnel, end tunneling
+			else if (!doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize)) {
+				roadAttr.BuildRoadType = RoadType.TUNNELEND;
+			}
+		}
+
+		// If the next position hits terrain and the angle is too steep, turn it into a tunnel
+		if (doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize) && (ang < initRuleAttr.MinAngle || ang > initRuleAttr.MaxAngle)) {
+			if (roadAttr.BuildRoadType != RoadType.TUNNELSTART) {
+				//GD.Print("TunnelingStart");
+				roadAttr.BuildRoadType = RoadType.TUNNELSTART;
+			} 
+		}
+		// If the next position is over water and not hitting terrain, turn it into a bridge
+		else if (isAboveWater(roadAttr.Position)) {
+			roadAttr.BuildRoadType = RoadType.BRIDGE;
+		} 
+
+		sym.RoadAttr = roadAttr;
+		return sym;
+	}
 
 	// Get nearest surface to the given position
 	private Vector3 getNearestSurface(Vector3 pos) {
@@ -415,34 +424,6 @@ public partial class LSystem
 			//}	
 		}
 		return false;
-	}
-
-
-	// Queries whether the road can be inserted
-	// checks for legal terrain, or if road will intersect with water, mountains, etc.
-	private bool insertQuery(RoadAttributes roadAttr) {
-		//GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition + " With angle : " + roadAttr.Direction);
-		//GD.Print("Road locs: " +  string.Join("\n", roadLocations));
-		Vector3 startPos = roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize);
-		Vector3 endPos = roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize);
-
-		for (int i = 0; i < roadLocations.Count; i++) {
-            Vector3 pos = roadLocations[i];
-			Vector3 dir = roadDirections[i];
-			Vector3 startPos2 = pos - (dir * roadAttr.RoadSize);
-			Vector3 endPos2 = pos + (dir * roadAttr.RoadSize);
-			// Same position, or near position from a certain threshold
-			Vector3 rStart;
-			Vector3 rEnd;
-			if (lineIntersectsLine(startPos, endPos, startPos2, endPos2, out rStart, out rEnd) && 
-					rStart.DistanceTo(rEnd) <= Mathf.Epsilon) {
-				return false;
-			}
-		}
-		roadLocations.Add(roadAttr.Position);
-        roadDirections.Add(roadAttr.Direction);
-		return true;
-		
 	}
 
 	/*
