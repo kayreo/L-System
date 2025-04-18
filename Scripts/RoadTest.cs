@@ -209,7 +209,6 @@ public partial class RoadTest : Node3D
 	/* --------------------------- 
 	--------- Road Funcs ---------
 	------------------------------ */
-
 	private void addCurve(CsgPolygon3D poly, RoadAttributes roadAttr) {
 		Curve3D curve = poly.GetNode<Path3D>("Path3D").Curve;
 		//Node3D newRoad = (Node3D)Road.Instantiate();
@@ -243,6 +242,11 @@ public partial class RoadTest : Node3D
 			end = getNearestNormal(roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize));
 			curve.AddPoint(roadAttr.Position, start, end);
 			(poly.Material as ShaderMaterial).SetShaderParameter("type", (int)roadAttr.BuildRoadType);
+			// pass in point and length
+			// start of entire curve
+			// value = point - start / length
+			// color = vec3(value)
+			//curve.GetClosestPoint()
 		}
 		//	newRoad.Translate(curve.GetPointOut(curve.PointCount - 1));
 		//RoadList.AddChild(newRoad);
