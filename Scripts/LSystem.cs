@@ -24,10 +24,6 @@ public partial class LSystem
 
 	public Vector3 CurPos = Vector3.Zero;
 
-	public Stack<Vector3> PushedPos = new Stack<Vector3>();
-
-	public Stack<float> PushedAng = new Stack<float>();
-
 	public Vector3 CurDir = Vector3.Forward;
 
 	public float SeaLevel;
@@ -41,7 +37,6 @@ public partial class LSystem
 	List<Vector3> roadLocations;
     List<Vector3> roadDirections;
 	Mesh heightMap;
-
 
 	Dictionary<string, RuleAttributes> rules = new Dictionary<string, RuleAttributes> {
 		{"None", new RuleAttributes(Mathf.DegToRad(90f), Mathf.DegToRad(95f))}
@@ -79,13 +74,11 @@ public partial class LSystem
 
 	// Builds the list of symbols that will then be used to build the road system
 	public List<ISymbol> buildRoads(int iterations) {
-
-
 		// If the target axiom was already generated, return it
 		if (generatedSoFar.Count >= iterations + 1) {
-			GD.Print("Returning generated for: " + iterations);
 			return generatedSoFar[iterations];
 		}
+
 		// Otherwise, need to generate a new one
 		generated = generatedSoFar[generatedSoFar.Count - 1];
 
@@ -144,8 +137,6 @@ public partial class LSystem
 			Rule curRule = Rules[r];
 			// Check if symbol matches rule and any conditions
 			if (sym is Symbol) {				
-				
-				// General rewrites
 				Symbol castedSym = (Symbol) sym;
 
 				if (castedSym.ID == "A" || castedSym.ID == "Br" || castedSym.ID == "T" || castedSym.ID == "T1" || castedSym.ID == "T2") {
@@ -153,7 +144,9 @@ public partial class LSystem
 				}
 
 				if (curRule.checkSymbol(castedSym) && curRule.checkCond()) {
+					// General rewrites
 					result = curRule.genOutput();
+
 					// If this is the branch rule, call global goals and populate params
 					if (r == "RuleRBranch") {
 						// Use these for global goals param calls
@@ -303,34 +296,7 @@ public partial class LSystem
 	/* --------------------------- 
 	-------- Query Funcs ---------
 	------------------------------ */
-
-	// Queries whether the road can be inserted
-	// checks for legal terrain, or if road will intersect with water, mountains, etc.
-	private bool insertQuery(RoadAttributes roadAttr) {
-		//GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition + " With angle : " + roadAttr.Direction);
-		//GD.Print("Road locs: " +  string.Join("\n", roadLocations));
-		Vector3 startPos = roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize);
-		Vector3 endPos = roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize);
-
-		for (int i = 0; i < roadLocations.Count; i++) {
-            Vector3 pos = roadLocations[i];
-			Vector3 dir = roadDirections[i];
-			Vector3 startPos2 = pos - (dir * roadAttr.RoadSize);
-			Vector3 endPos2 = pos + (dir * roadAttr.RoadSize);
-			// Same position, or near position from a certain threshold
-			Vector3 rStart;
-			Vector3 rEnd;
-			if (lineIntersectsLine(startPos, endPos, startPos2, endPos2, out rStart, out rEnd) && 
-					rStart.DistanceTo(rEnd) <= Mathf.Epsilon) {
-				return false;
-			}
-		}
-		roadLocations.Add(roadAttr.Position);
-        roadDirections.Add(roadAttr.Direction);
-		return true;
-		
-	}
-
+	// First environment query
 	// Adjust road attribute values based on local environment
 	private Symbol adjustAttrs(Symbol sym) {
 		// Get the attribute from the passed in symbol
@@ -364,43 +330,49 @@ public partial class LSystem
 			roadAttr.BuildRoadType = RoadType.BRIDGE;
 		}
 
+		/*
+		Invalid environment scenarios:
+			Ground does not intersect, angle too steep
+			Ground not above water and not intersecting with ground
+		*/
+		else {
+			sym.Del = -1;
+		}
 		sym.RoadAttr = roadAttr;
 		return sym;
 	}
 
-	// Get nearest surface to the given position
-	private Vector3 getNearestSurface(Vector3 pos) {
-		float shortestDist = float.MaxValue;
-		Vector3 closestSurface = Vector3.Zero;
-		
-		Godot.Collections.Array heights = (Godot.Collections.Array)heightMap.SurfaceGetArrays(0)[0];
-		foreach (Variant h in heights) {
-			Vector3 curH = (Vector3)h;
-			float dist = pos.DistanceSquaredTo(curH);
-			if (dist < shortestDist) {
-				shortestDist = dist;
-				closestSurface = curH;
+	// Second environment query
+	// Checks if the road will intersect with another road
+	private bool insertQuery(RoadAttributes roadAttr) {
+		//GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition + " With angle : " + roadAttr.Direction);
+		//GD.Print("Road locs: " +  string.Join("\n", roadLocations));
+		Vector3 startPos = roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize);
+		Vector3 endPos = roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize);
+
+		for (int i = 0; i < roadLocations.Count; i++) {
+            Vector3 pos = roadLocations[i];
+			Vector3 dir = roadDirections[i];
+			Vector3 startPos2 = pos - (dir * roadAttr.RoadSize);
+			Vector3 endPos2 = pos + (dir * roadAttr.RoadSize);
+			// Same position, or near position from a certain threshold
+			Vector3 rStart;
+			Vector3 rEnd;
+			if (lineIntersectsLine(startPos, endPos, startPos2, endPos2, out rStart, out rEnd) && 
+					rStart.DistanceTo(rEnd) <= Mathf.Epsilon) {
+				return false;
 			}
 		}
-		return closestSurface;
+		roadLocations.Add(roadAttr.Position);
+        roadDirections.Add(roadAttr.Direction);
+		return true;
+		
 	}
 
-	// Get nearest normal to the given position
-	private Vector3 getNearestNormal(Vector3 pos) {
-		float shortestDist = float.MaxValue;
-		Vector3 closestNormal = Vector3.Zero;
-		
-		Godot.Collections.Array heights = (Godot.Collections.Array)heightMap.SurfaceGetArrays(0)[1];
-		foreach (Variant h in heights) {
-			Vector3 curH = (Vector3)h;
-			float dist = pos.DistanceSquaredTo(curH);
-			if (dist < shortestDist) {
-				shortestDist = dist;
-				closestNormal = curH;
-			}
-		}
-		return closestNormal;
-	}
+
+	/* --------------------------- 
+	--------- Util Funcs ---------
+	------------------------------ */
 
 	// Check if the current position is above sea level and not intersecting with land
 	private bool isAboveWater(Vector3 pos) {
@@ -426,17 +398,7 @@ public partial class LSystem
 		return false;
 	}
 
-	/*
-	float denom = pDirB.Z * pDirA.X - pDirB.X * pDirA.Z; 
-			rResult = Vector3.Inf;
-			if (denom <= 0.00001f) { // Parallel?
-				return false;
-			}
-			Vector3 v = pFromA - pFromB;
-			float t = (pDirB.X * v.Z - pDirB.Z * v.X) / denom;
-			rResult = pFromA + t * pDirA;
-			return true;
-	*/
+	// Line intersection code by by Ronald Holthuizen from: https://paulbourke.net/geometry/pointlineplane/calclineline.cs
 	public static bool lineIntersectsLine(Vector3 line1Point1, Vector3 line1Point2, 
 		Vector3 line2Point1, Vector3 line2Point2, out Vector3 resultSegmentPoint1, out Vector3 resultSegmentPoint2) {
 		// Algorithm is ported from the C algorithm of 
@@ -484,6 +446,39 @@ public partial class LSystem
 		return true;
 	}
 
+	// Get nearest surface to the given position
+	private Vector3 getNearestSurface(Vector3 pos) {
+		float shortestDist = float.MaxValue;
+		Vector3 closestSurface = Vector3.Zero;
+		
+		Godot.Collections.Array heights = (Godot.Collections.Array)heightMap.SurfaceGetArrays(0)[0];
+		foreach (Variant h in heights) {
+			Vector3 curH = (Vector3)h;
+			float dist = pos.DistanceSquaredTo(curH);
+			if (dist < shortestDist) {
+				shortestDist = dist;
+				closestSurface = curH;
+			}
+		}
+		return closestSurface;
+	}
+
+	// Get nearest normal to the given position
+	private Vector3 getNearestNormal(Vector3 pos) {
+		float shortestDist = float.MaxValue;
+		Vector3 closestNormal = Vector3.Zero;
+		
+		Godot.Collections.Array heights = (Godot.Collections.Array)heightMap.SurfaceGetArrays(0)[1];
+		foreach (Variant h in heights) {
+			Vector3 curH = (Vector3)h;
+			float dist = pos.DistanceSquaredTo(curH);
+			if (dist < shortestDist) {
+				shortestDist = dist;
+				closestNormal = curH;
+			}
+		}
+		return closestNormal;
+	}
 
 	// Get the closest destination node the road is near
 	private Node3D getClosestDest(Vector3 pos) {

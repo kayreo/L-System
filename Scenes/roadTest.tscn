@@ -1,14 +1,9 @@
-[gd_scene load_steps=14 format=3 uid="uid://63rl4s70duft"]
+[gd_scene load_steps=9 format=3 uid="uid://63rl4s70duft"]
 
 [ext_resource type="Script" path="res://Scripts/RoadTest.cs" id="1_h3pjn"]
-[ext_resource type="PackedScene" uid="uid://b4jq2j8wk8veh" path="res://Scenes/road.tscn" id="2_12i0k"]
 [ext_resource type="PackedScene" uid="uid://p86428lxwsrl" path="res://Scenes/popDensity.tscn" id="3_5hqd3"]
-[ext_resource type="PackedScene" uid="uid://cylpflspri8do" path="res://Scenes/bridge.tscn" id="3_6jw6y"]
-[ext_resource type="PackedScene" uid="uid://ihxsl5cslejy" path="res://Scenes/tunnelStart.tscn" id="4_2wt1c"]
 [ext_resource type="PackedScene" uid="uid://bjvv0k48qanhu" path="res://Scenes/terrain.tscn" id="4_8pg8q"]
 [ext_resource type="PackedScene" uid="uid://qhkd1nykrcfm" path="res://Scenes/player.tscn" id="5_2y8xt"]
-[ext_resource type="PackedScene" uid="uid://bdj8y4bmpvkmn" path="res://Scenes/tunnelEnd.tscn" id="5_8c72f"]
-[ext_resource type="PackedScene" uid="uid://d0h2vght41whl" path="res://Scenes/tunnel.tscn" id="5_qs7o4"]
 [ext_resource type="PackedScene" uid="uid://d1a8mn2g4xwcg" path="res://Scenes/viz.tscn" id="7_vytjq"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_fwscv"]
@@ -21,11 +16,6 @@ albedo_color = Color(0.298039, 0.933333, 0.709804, 1)
 
 [node name="roadTest" type="Node3D"]
 script = ExtResource("1_h3pjn")
-Road = ExtResource("2_12i0k")
-Bridge = ExtResource("3_6jw6y")
-TunnelStart = ExtResource("4_2wt1c")
-Tunnel = ExtResource("5_qs7o4")
-TunnelEnd = ExtResource("5_8c72f")
 Viz = ExtResource("7_vytjq")
 Destination = ExtResource("3_5hqd3")
 Iterations = 40
@@ -51,6 +41,7 @@ environment = SubResource("Environment_k3whs")
 transform = Transform3D(0.493236, -0.291728, 0.81952, -0.282564, 0.837274, 0.468112, -0.822725, -0.462457, 0.330542, 0, 434.665, 0)
 
 [node name="Player" parent="." instance=ExtResource("5_2y8xt")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 70.0351, 0)
 
 [node name="OmniLight3D" type="OmniLight3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 370.604, 0)
@@ -60,3 +51,4 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 370.604, 0)
 [node name="Visuals" type="Node3D" parent="."]
 
 [editable path="Player"]
+[editable path="Terrain"]

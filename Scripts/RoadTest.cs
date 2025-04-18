@@ -8,22 +8,6 @@ public partial class RoadTest : Node3D
     private float progress = 0.0f;  // Progress along the curve (0 to 1)
     private float speed = 0.1f;  // Speed at which the cylinder moves along the curve
 
-
-	[Export]
-	public PackedScene Road { get; set; }
-
-	[Export]
-	public PackedScene Bridge { get; set; }
-
-	[Export]
-	public PackedScene TunnelStart { get; set; }
-
-	[Export]
-	public PackedScene Tunnel { get; set; }
-
-	[Export]
-	public PackedScene TunnelEnd { get; set; }
-
 	[Export]
 	public PackedScene Viz { get; set; }
 
@@ -171,29 +155,8 @@ public partial class RoadTest : Node3D
 			if (sym is Symbol) {
 				Symbol castedSym = (Symbol)sym;
 				//GD.Print("ID: ", castedSym.ID);
-				switch (castedSym.ID) {
-					// Create a road
-					case "A":
-						//GD.Print("Add a road");
-						addCurve(newRoadViz, castedSym.RoadAttr);
-						//addRoad(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
-						break;
-					case "Br":
-						addCurve(newRoadViz, castedSym.RoadAttr);
-						//addBridge(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
-						break;
-					case "T1":
-						addCurve(newRoadViz, castedSym.RoadAttr);
-						//addTunnelStart(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
-						break;
-					case "T2":
-						addCurve(newRoadViz, castedSym.RoadAttr);
-						//addTunnelEnd(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
-						break;
-					case "T":
-						addCurve(newRoadViz, castedSym.RoadAttr);
-						//addTunnel(castedSym.RoadAttr.Position, castedSym.RoadAttr.LookPosition);
-						break;
+				if (castedSym.ID == "A" || castedSym.ID == "Br" || castedSym.ID == "T" || castedSym.ID == "T1" || castedSym.ID == "T2") {
+					addCurve(newRoadViz, castedSym.RoadAttr);
 				}
 			}
 			// // Branch and save position
@@ -238,131 +201,34 @@ public partial class RoadTest : Node3D
 		// 	// }
 		// } else {
 
+		// Placing point
+		start = getNearestNormal(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
+		end = getNearestNormal(roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize));
+		curve.AddPoint(roadAttr.Position, start, end);
 
-			// Placing point
-			start = getNearestNormal(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
-			end = getNearestNormal(roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize));
-			curve.AddPoint(roadAttr.Position, start, end);
-			(poly.Material as ShaderMaterial).SetShaderParameter("type", (float)roadAttr.BuildRoadType);
-			(poly.Material as ShaderMaterial).SetShaderParameter("closestPoint", curve.GetClosestPoint(roadAttr.Position));
-			(poly.Material as ShaderMaterial).SetShaderParameter("length", roadAttr.RoadSize);
-			// pass in point and length
-			// start of entire curve
-			// value = point - start / length
-			// color = vec3(value)
-			//curve.GetClosestPoint()
-
-		//}
-	}
-
-	// Get nearest normal to the given position
-	private Vector3 getNearestNormal(Vector3 pos) {
-		float shortestDist = float.MaxValue;
-		Vector3 closestNormal = Vector3.Zero;
-		
-		Godot.Collections.Array heights = (Godot.Collections.Array)TerrainHeight.SurfaceGetArrays(0)[1];
-		foreach (Variant h in heights) {
-			Vector3 curH = (Vector3)h;
-			float dist = pos.DistanceSquaredTo(curH);
-			if (dist < shortestDist) {
-				shortestDist = dist;
-				closestNormal = curH;
-			}
-		}
-		return closestNormal;
-	}
-
-	// Draw a road forward
-	// Same as rule +F (Rotate by angle, draw a forward line by length)
-	private void addRoad(Vector3 pos, Vector3 lookPos) {
-		// Create new road and set position
-		//GD.Print("Adding a road at: ", pos);
-		Node3D newRoad = (Node3D)Road.Instantiate();
-		newRoad.Translate(pos);
-
-		if (!pos.Equals(lookPos)) {
-			newRoad.LookAtFromPosition(pos, lookPos);
-		} else {
-		//	newRoad.Translate(pos);
-		}
-		RoadList.AddChild(newRoad);
-	}
-
-	// Draw a bridge forward
-	// Same as rule +F (Rotate by angle, draw a forward line by length)
-	private void addBridge(Vector3 pos, Vector3 lookPos) {
-		// Create new road and set position
-		//GD.Print("Adding a road at: ", pos);
-		Node3D newBridge = (Node3D)Bridge.Instantiate();
-		//newRoad.Translate(pos);
-
-		if (!pos.Equals(lookPos)) {
-			newBridge.LookAtFromPosition(pos, lookPos);
-		} else {
-			newBridge.Translate(pos);
-		}
-		RoadList.AddChild(newBridge);
-	}
-
-
-	// Draw a tunnel forward
-	// Same as rule +F (Rotate by angle, draw a forward line by length)
-	private void addTunnel(Vector3 pos, Vector3 lookPos) {
-		// Create new road and set position
-		//GD.Print("Adding a road at: ", pos);
-		Node3D newTunnel = (Node3D)Tunnel.Instantiate();
-		//newRoad.Translate(pos);
-
-		if (!pos.Equals(lookPos)) {
-			newTunnel.LookAtFromPosition(pos, lookPos);
-		} else {
-			newTunnel.Translate(pos);
-		}
-		RoadList.AddChild(newTunnel);
-	}
-
-	// Draw a tunnel forward
-	// Same as rule +F (Rotate by angle, draw a forward line by length)
-	private void addTunnelStart(Vector3 pos, Vector3 lookPos) {
-		// Create new road and set position
-		//GD.Print("Adding a tunnel start at: ", pos);
-		Node3D newTunnelStart = (Node3D)TunnelStart.Instantiate();
-		//newRoad.Translate(pos);
-
-		if (!pos.Equals(lookPos)) {
-			newTunnelStart.LookAtFromPosition(pos, lookPos);
-		} else {
-			newTunnelStart.Translate(pos);
-		}
-		RoadList.AddChild(newTunnelStart);
-	}
-
-		// Draw a tunnel forward
-	// Same as rule +F (Rotate by angle, draw a forward line by length)
-	private void addTunnelEnd(Vector3 pos, Vector3 lookPos) {
-		// Create new road and set position
-		//GD.Print("Adding a road at: ", pos);
-		Node3D newBridge = (Node3D)TunnelEnd.Instantiate();
-		//newRoad.Translate(pos);
-
-		if (!pos.Equals(lookPos)) {
-			newBridge.LookAtFromPosition(pos, lookPos);
-		} else {
-			newBridge.Translate(pos);
-		}
-		RoadList.AddChild(newBridge);
+		// Pass vals to shader		
+		Vector3 firstPoint = curve.GetPointPosition(0);
+		Vector3 closestPoint = curve.GetClosestPoint(roadAttr.Position);
+		float length = (closestPoint - firstPoint).Length();
+		(poly.Material as ShaderMaterial).SetShaderParameter("firstPoint", firstPoint); 
+		(poly.Material as ShaderMaterial).SetShaderParameter("closestPoint", closestPoint); // Pass in point and length
+		(poly.Material as ShaderMaterial).SetShaderParameter("length", roadAttr.RoadSize);
+		(poly.Material as ShaderMaterial).SetShaderParameter("type", (float)roadAttr.BuildRoadType);
 	}
 
 	/* --------------------------- 
 	--------- Dest Funcs ---------
 	------------------------------ */
-
-
 	/*
-	TODO: Hardcoded values for position for debugging:
+	Hardcoded values for position for debugging:
 		int x = -100 * i;
 		int y = 200 * i;
 		int z = -300 * i;
+
+	Regular values
+		int x = GD.RandRange((int)-boundsSize.X/3, (int)boundsSize.X/3);
+		int z = GD.RandRange((int)-boundsSize.Z/3, (int)boundsSize.Z/3);
+		int y = (int)getNearestSurface(new Vector3(x, 0, z)).Y;
 	*/
 
 	private void randomizeDests() {
@@ -381,6 +247,27 @@ public partial class RoadTest : Node3D
 		Node3D newDest = (Node3D)Destination.Instantiate();
 		newDest.Translate(pos);
 		DestList.AddChild(newDest);
+	}
+
+	/* --------------------------- 
+	--------- Util Funcs ---------
+	------------------------------ */
+
+	// Get nearest normal to the given position
+	private Vector3 getNearestNormal(Vector3 pos) {
+		float shortestDist = float.MaxValue;
+		Vector3 closestNormal = Vector3.Zero;
+		
+		Godot.Collections.Array heights = (Godot.Collections.Array)TerrainHeight.SurfaceGetArrays(0)[1];
+		foreach (Variant h in heights) {
+			Vector3 curH = (Vector3)h;
+			float dist = pos.DistanceSquaredTo(curH);
+			if (dist < shortestDist) {
+				shortestDist = dist;
+				closestNormal = curH;
+			}
+		}
+		return closestNormal;
 	}
 
 	// Get nearest surface to the given position

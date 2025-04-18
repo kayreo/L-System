@@ -9,6 +9,7 @@ shader_parameter/region_min = Vector3(-1, 0, -1)
 shader_parameter/region_max = Vector3(1, 1, 1)
 shader_parameter/type = 0.0
 shader_parameter/length = 0.0
+shader_parameter/firstPoint = null
 shader_parameter/closestPoint = null
 shader_parameter/color = 1.0
 
