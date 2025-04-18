@@ -18,7 +18,7 @@ albedo_color = Color(0.298039, 0.933333, 0.709804, 1)
 script = ExtResource("1_h3pjn")
 Viz = ExtResource("7_vytjq")
 Destination = ExtResource("3_5hqd3")
-Iterations = 40
+Iterations = 30
 ShowTerrain = false
 
 [node name="Camera3D" type="Camera3D" parent="."]

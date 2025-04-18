@@ -26,6 +26,12 @@ public partial class RoadTest : Node3D
 	[Export]
 	public bool ShowTerrain = true;
 
+	[Export]
+	public bool InstantGen = true;
+
+	[Export(PropertyHint.Range, "25,100,1,or_greater")]
+	public float RoadSize = 25.0f;
+
 	public Node3D VizList;
 
 	public Node3D RoadList;
@@ -48,21 +54,12 @@ public partial class RoadTest : Node3D
 
 	private Vector3 mostRecentPos;
 
+	// Used when iterations change
 	private int i = 0;
-
-
-	/*
-	TODO: add terrain
-	add more functionality in godot editor
-		- add rule customization to editor (user can select which rule to run simulation on)
-	add bridges (and maybe tunnels) to l system (new symbol, new instantiated scene)
-		- detect terrain height, bridge spawn when above threshold
-	*/
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
-
 		// TODO: Maybe adjust this via editor and not code
 		// Prep nodes
 		RoadList = GetNode<Node3D>("Roads");
@@ -75,15 +72,19 @@ public partial class RoadTest : Node3D
 		cameras.Add("Player", GetNode<Camera3D>("Player/Camera3D"));
 		ToggleTerrain();
 		cameras[StartCamera].MakeCurrent();
+
 		// Other setup
 		GD.Randomize();
-		L = new LSystem(RoadList, DestList, TerrainHeight, Rule, GetNode<Node3D>("Terrain").GetNode<MeshInstance3D>("Water").Position.Y);
+		L = new LSystem(RoadList, DestList, TerrainHeight, Rule, GetNode<Node3D>("Terrain").GetNode<MeshInstance3D>("Water").Position.Y, RoadSize);
 
 		randomizeDests();
 
-		generateRoads(Iterations);
+		if (InstantGen) {
+			generateRoads(Iterations);
+		}
 	}
 
+	// Clears object lists and reruns L-system
 	private void generateRoads(int i) {
 		// clear road list
 		foreach (Node roadChild in RoadList.GetChildren()) {
@@ -96,13 +97,11 @@ public partial class RoadTest : Node3D
 		curves.Clear();
 		curCurve = null;
 		interpret(L.buildRoads(i));
-		//interpret(L.buildRoads(Iterations));
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
 	public override void _Process(double delta)
 	{
-
 		if (Input.IsActionJustReleased("Reset"))
 		{
 			GetTree().ReloadCurrentScene();
@@ -110,10 +109,16 @@ public partial class RoadTest : Node3D
 		if (Input.IsActionJustReleased("Progress")) {
 			i = 0;
 			Iterations++;
+			if (InstantGen) {
+				generateRoads(Iterations);
+			}
 		}
 		if (Input.IsActionJustReleased("Regress")) {
 			i = 0;
 			Iterations--;
+			if (InstantGen) {
+				generateRoads(Iterations);
+			}
 		}
 		if (Input.IsActionJustReleased("ChangeCam")) {
 			if (StartCamera == "Overhead") {
@@ -128,8 +133,8 @@ public partial class RoadTest : Node3D
 			ToggleTerrain();
 		}
 
-		if (i <= Iterations) {
-			//generateRoads(i);
+		if (!InstantGen && i <= Iterations) {
+			generateRoads(i);
 			i++;
 		}
 	}
@@ -143,8 +148,6 @@ public partial class RoadTest : Node3D
 	}
 
 	// Go through generated symbols and interperet
-	// TODO: make this better lol
-	// i want to make this a tree nav or something
 	private void interpret(List<ISymbol> axiom) {
 		CsgPolygon3D newRoadViz = (CsgPolygon3D)Viz.Instantiate();
 		newRoadViz.GetNode<Path3D>("Path3D").Curve = new Curve3D();
@@ -159,7 +162,7 @@ public partial class RoadTest : Node3D
 					addCurve(newRoadViz, castedSym.RoadAttr);
 				}
 			}
-			// // Branch and save position
+			// Branch
 			else if (sym is SymBranch) {
 				SymBranch castedSym = (SymBranch)sym;
 				// Interpret symbols in this branch
@@ -174,7 +177,8 @@ public partial class RoadTest : Node3D
 	------------------------------ */
 	private void addCurve(CsgPolygon3D poly, RoadAttributes roadAttr) {
 		Curve3D curve = poly.GetNode<Path3D>("Path3D").Curve;
-		//Node3D newRoad = (Node3D)Road.Instantiate();
+
+		// Don't add duplicates
 		for (int i = 0; i < curve.PointCount; i++) {
 			if (curve.GetPointPosition(i).Equals(roadAttr.Position)) {
 				return;
@@ -183,7 +187,6 @@ public partial class RoadTest : Node3D
 
 		Vector3 start;
 		Vector3 end;
-
 
 		// Sample points between last point and most recent point
 		// if (curve.PointCount > 1) {
@@ -212,7 +215,7 @@ public partial class RoadTest : Node3D
 		float length = (closestPoint - firstPoint).Length();
 		(poly.Material as ShaderMaterial).SetShaderParameter("firstPoint", firstPoint); 
 		(poly.Material as ShaderMaterial).SetShaderParameter("closestPoint", closestPoint); // Pass in point and length
-		(poly.Material as ShaderMaterial).SetShaderParameter("length", roadAttr.RoadSize);
+		(poly.Material as ShaderMaterial).SetShaderParameter("length", length);
 		(poly.Material as ShaderMaterial).SetShaderParameter("type", (float)roadAttr.BuildRoadType);
 	}
 
@@ -230,7 +233,7 @@ public partial class RoadTest : Node3D
 		int z = GD.RandRange((int)-boundsSize.Z/3, (int)boundsSize.Z/3);
 		int y = (int)getNearestSurface(new Vector3(x, 0, z)).Y;
 	*/
-
+	// Randomly place 3 destinations in scene
 	private void randomizeDests() {
 		Vector3 boundsSize = Bounds.GetAabb().Size;
 		for (int i = 0; i < 3; i++) {
@@ -253,7 +256,7 @@ public partial class RoadTest : Node3D
 	--------- Util Funcs ---------
 	------------------------------ */
 
-	// Get nearest normal to the given position
+	// Get nearest surface normal to the given position
 	private Vector3 getNearestNormal(Vector3 pos) {
 		float shortestDist = float.MaxValue;
 		Vector3 closestNormal = Vector3.Zero;
@@ -270,7 +273,7 @@ public partial class RoadTest : Node3D
 		return closestNormal;
 	}
 
-	// Get nearest surface to the given position
+	// Get nearest surface vertex to the given position
 	private Vector3 getNearestSurface(Vector3 pos) {
 		float shortestDist = float.MaxValue;
 		Vector3 closestSurface = Vector3.Zero;

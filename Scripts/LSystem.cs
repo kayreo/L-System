@@ -30,6 +30,8 @@ public partial class LSystem
 
 	public float CurAngle = 0.0f;
 
+	public float initSize;
+
 	// Parameter lists to be populated by global goals
 	List<int> delays;
 	List<RuleAttributes> ruleAttrs;
@@ -44,18 +46,22 @@ public partial class LSystem
 
 	// Init attributes
 	RuleAttributes initRuleAttr;
-	RoadAttributes initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, 25.0f, Vector3.Zero, RoadType.NONE, -1);
+	RoadAttributes initRoadAttr;
 
 	// begin with a basic road symbol and an insertion query to determine if legal place to put road
 	public List<ISymbol> generated;
 
 	public List<List<ISymbol>> generatedSoFar = new List<List<ISymbol>>();
 
-	public LSystem(Node3D rList, Node3D dList, Mesh hm, string Rule, float seaLevel) {
+	public LSystem(Node3D rList, Node3D dList, Mesh hm, string Rule, float seaLevel, float rs) {
 		DestList = dList;
 		RoadList = rList;
 		heightMap = hm;
 		SeaLevel = seaLevel;
+		initSize = rs;
+		
+		initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, initSize, RoadType.NONE, -1);
+
 		if (rules.ContainsKey(Rule)) {
 			initRuleAttr = rules[Rule];
 		} else {
@@ -217,38 +223,42 @@ public partial class LSystem
 		
 		int delayBranch = curRoadAttr.Branched;
 
-		// Increment position to next position
+		// Increment position to next nearest surface position
 		Vector3 nextPos = getNearestSurface(curRoadAttr.Position + curRoadAttr.RoadSize * curRoadAttr.Direction);
 
-		Vector3 nextLookPos = curRoadAttr.Position + curRoadAttr.RoadSize * curRoadAttr.Direction * 2;
+		// Adjust angle and dir for road to conform to surface
+		// Project the road onto the nearest surface normal
+		Vector3 nearestNormal = getNearestNormal(curRoadAttr.Position);
+		Vector3 projectedDir = curRoadAttr.Direction.Project(nearestNormal);
 
-		// Adjust angle and dir for road
-		float nextAngR = curRoadAttr.CurAngle;
+		// First generate regular moving forward angle
+		float nextAngR = curRoadAttr.Direction.AngleTo(projectedDir);
 		
-		// Get next look dest
+		// If the road is not going to branch, angle the next road to the nearest destination
 		if (curRoadAttr.Branched < 0) {
-			nextLookPos = getClosestDest(nextPos).Position;
 			nextAngR = getClosestDestAngle(nextPos, curRoadAttr.Direction);
 		}
+		// If the road is branched, modify delays for roads and have road ignore nearest destinations
 		else {
 			delayR = 0;
 			delayB1 = 1;
 			delayB2 = 2;
 			nextAngR = 0;
 			delayBranch = curRoadAttr.Branched - 1;
+			// If the road's delay is up, start angling to next destination
 			if (curRoadAttr.Branched == 0) {
-				nextLookPos = getClosestDest(nextPos).Position;
 				nextAngR = getClosestDestAngle(nextPos, curRoadAttr.Direction);
 			}
 		}
 
-		Vector3 nextDirR = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngR).Normalized();
+		// Adjust direction with updated angle
+		Vector3 nextDirR = curRoadAttr.Direction.Rotated(nearestNormal, nextAngR).Normalized();
 
-		// Adjust angle and dir for branch 1
+		// Adjust angle and dir for branch 1 by randomly picking from angle range
 		float nextAngB1 = curRoadAttr.CurAngle + (float)GD.RandRange(curRuleAttr.MinAngle, curRuleAttr.MaxAngle);
 		Vector3 nextDirB1 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB1).Normalized();
 
-		// Adjust angle and dir for branch 2
+		// Adjust angle and dir for branch 2 by randomly picking from angle range
 		float nextAngB2 = curRoadAttr.CurAngle - (float)GD.RandRange(curRuleAttr.MinAngle, curRuleAttr.MaxAngle);
 		Vector3 nextDirB2 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB2).Normalized();
 
@@ -257,17 +267,17 @@ public partial class LSystem
 		delays.Add(delayB2);
 		delays.Add(delayR);
 
-		// Generate roadAttr
+		// Generate roadAttrs
 		// Branch 1: Try branching to one direction
-		RoadAttributes newBranch1 = new RoadAttributes(nextPos, nextDirB1, nextAngB1, curRoadAttr.RoadSize, curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB1 * 2, RoadType.NONE, delayBranch);
+		RoadAttributes newBranch1 = new RoadAttributes(nextPos, nextDirB1, nextAngB1, curRoadAttr.RoadSize, RoadType.NONE, delayBranch);
 		roadAttrs.Add(newBranch1);
 
 		// Branch 2: Try branching to another direction
-		RoadAttributes newBranch2 = new RoadAttributes(nextPos, nextDirB2, nextAngB2, curRoadAttr.RoadSize, curRoadAttr.Position + curRoadAttr.RoadSize * nextDirB2 * 2, RoadType.NONE, delayBranch);
+		RoadAttributes newBranch2 = new RoadAttributes(nextPos, nextDirB2, nextAngB2, curRoadAttr.RoadSize, RoadType.NONE, delayBranch);
 		roadAttrs.Add(newBranch2);
 
 		// Road: Try to move forward
-		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, curRoadAttr.RoadSize, nextLookPos, curRoadAttr.BuildRoadType, delayBranch);
+		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, curRoadAttr.RoadSize, curRoadAttr.BuildRoadType, delayBranch);
 		roadAttrs.Add(newRoA);
 	}
 
@@ -302,13 +312,9 @@ public partial class LSystem
 		// Get the attribute from the passed in symbol
 		RoadAttributes roadAttr = sym.RoadAttr;
 
-		// Project the road onto the nearest surface normal
-		Vector3 nearestNormal = getNearestNormal(roadAttr.Position);
-		Vector3 projectedDir = roadAttr.Direction.Project(nearestNormal);
-		float ang = roadAttr.Direction.AngleTo(projectedDir);
-
 		// If the current road is in the middle of tuenneling, check if tunnel needs to continue or stop
 		if (roadAttr.BuildRoadType == RoadType.TUNNELSTART || roadAttr.BuildRoadType == RoadType.TUNNEL) {
+			roadAttr.CurAngle = 0;
 			if (doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize)) {
 				roadAttr.BuildRoadType = RoadType.TUNNEL;
 			}
@@ -319,8 +325,9 @@ public partial class LSystem
 		}
 
 		// If the next position hits terrain and the angle is too steep, turn it into a tunnel
-		if (doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize) && (ang < initRuleAttr.MinAngle || ang > initRuleAttr.MaxAngle)) {
+		if (doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize) && (roadAttr.CurAngle < initRuleAttr.MinAngle || roadAttr.CurAngle > initRuleAttr.MaxAngle)) {
 			if (roadAttr.BuildRoadType != RoadType.TUNNELSTART) {
+				roadAttr.CurAngle = 0;
 				//GD.Print("TunnelingStart");
 				roadAttr.BuildRoadType = RoadType.TUNNELSTART;
 			} 

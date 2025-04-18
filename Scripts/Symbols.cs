@@ -32,20 +32,17 @@ public float MinAngle { get; set; }
 
 // Struct for road attributes
 public struct RoadAttributes {
-	public RoadAttributes(Vector3 pos, Vector3 dir, float curAng, float roadSize, Vector3 lookPos, RoadType rt, int branchDelay) {
+	public RoadAttributes(Vector3 pos, Vector3 dir, float curAng, float roadSize, RoadType rt, int branchDelay) {
 		Position = pos;
 		Direction = dir;
 		CurAngle = curAng;
 		RoadSize = roadSize;
-		LookPosition = lookPos;
 		BuildRoadType = rt;
 		Branched = branchDelay;
 	}
 
 	public Vector3 Position { get; set; }
 	public Vector3 Direction { get; set; }
-	
-	public Vector3 LookPosition { get; set; }
 	public float CurAngle { get; set; }
 	public float RoadSize { get; set; }
 	public RoadType BuildRoadType { get; set; }
