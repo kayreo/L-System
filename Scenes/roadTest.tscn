@@ -36,7 +36,7 @@ transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 761
 current = true
 
 [node name="Bounds" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -163.687, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -50, 0)
 mesh = SubResource("PlaneMesh_fwscv")
 surface_material_override/0 = SubResource("StandardMaterial3D_3fx2o")
 
@@ -56,7 +56,6 @@ transform = Transform3D(0.493236, -0.291728, 0.81952, -0.282564, 0.837274, 0.468
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 370.604, 0)
 
 [node name="Terrain" parent="." instance=ExtResource("4_8pg8q")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.317444, -68.3702, 90.4028)
 
 [node name="Visuals" type="Node3D" parent="."]
 

@@ -285,7 +285,7 @@ public partial class LSystem
 				Symbol castedSym = (Symbol)axiom[i];
 				if (castedSym.ID == "R") { 
 					castedSym = adjustAttrs(castedSym);
-					if (insertQuery(castedSym.RoadAttr)) {
+					if (castedSym.Del != -1 && insertQuery(castedSym.RoadAttr)) {
 						castedSym.State = StateType.SUCCESS;
 					} else {
 						castedSym.State = StateType.FAILURE;
@@ -362,7 +362,7 @@ public partial class LSystem
 		// If the next position is over water and not hitting terrain, turn it into a bridge
 		else if (isAboveWater(roadAttr.Position)) {
 			roadAttr.BuildRoadType = RoadType.BRIDGE;
-		} 
+		}
 
 		sym.RoadAttr = roadAttr;
 		return sym;
