@@ -50,6 +50,8 @@ public partial class RoadTest : Node3D
 	
 	private Godot.Collections.Array<Curve3D> curves = new Godot.Collections.Array<Curve3D>();
 
+	private Godot.Collections.Array<Vector3> curvePositions = new Godot.Collections.Array<Vector3>();
+
 	private Godot.Collections.Array<Vector3> roadColors = new Godot.Collections.Array<Vector3>{
 		new Vector3(165, 42, 42),	// Regular road
 		new Vector3(0, 0, 255),		// Bridge
@@ -199,7 +201,7 @@ public partial class RoadTest : Node3D
 	------------------------------ */
 	private void addCurve(CsgPolygon3D poly, RoadAttributes roadAttr) {
 		Curve3D curve = poly.GetNode<Path3D>("Path3D").Curve;
-		
+	
 		// Don't add duplicates
 		for (int i = 0; i < curve.PointCount; i++) {
 			if (curve.GetPointPosition(i).Equals(roadAttr.Position)) {
@@ -237,6 +239,7 @@ public partial class RoadTest : Node3D
 			end = getNearestNormal(roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize));
 
 			curve.AddPoint(roadAttr.Position, start, end);
+			curvePositions.Add(roadAttr.Position);
 
 		//}
 	}
