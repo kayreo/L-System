@@ -50,6 +50,14 @@ public partial class RoadTest : Node3D
 	
 	private Godot.Collections.Array<Curve3D> curves = new Godot.Collections.Array<Curve3D>();
 
+	private Godot.Collections.Array<Vector3> roadColors = new Godot.Collections.Array<Vector3>{
+		new Vector3(165, 42, 42),	// Regular road
+		new Vector3(0, 0, 255),		// Bridge
+		new Vector3(0, 0, 0),		// Tunnel start
+		new Vector3(255, 0, 0),		// Tunnel mid
+		new Vector3(0, 255, 0)		// Tunnel end
+	};
+
 	private Curve3D curCurve;
 
 	private Vector3 mostRecentPos;
@@ -104,6 +112,7 @@ public partial class RoadTest : Node3D
 	{
 		if (Input.IsActionJustReleased("Reset"))
 		{
+			GD.Print("------");
 			GetTree().ReloadCurrentScene();
 		}
 		if (Input.IsActionJustReleased("Progress")) {
@@ -147,18 +156,30 @@ public partial class RoadTest : Node3D
 		}
 	}
 
+	private void makeNewCurve() {
+
+	}
+
 	// Go through generated symbols and interperet
 	private void interpret(List<ISymbol> axiom) {
 		CsgPolygon3D newRoadViz = (CsgPolygon3D)Viz.Instantiate();
 		newRoadViz.GetNode<Path3D>("Path3D").Curve = new Curve3D();
 		Curve3D curve = newRoadViz.GetNode<Path3D>("Path3D").Curve;
 		VizList.AddChild(newRoadViz);
-		foreach (ISymbol sym in axiom) {
+		for (int i = 0; i < axiom.Count; i++) {
+			ISymbol sym = axiom[i];
 			//GD.Print("Interpreting: ", sym);
 			if (sym is Symbol) {
 				Symbol castedSym = (Symbol)sym;
 				//GD.Print("ID: ", castedSym.ID);
 				if (castedSym.ID == "A" || castedSym.ID == "Br" || castedSym.ID == "T" || castedSym.ID == "T1" || castedSym.ID == "T2") {
+					if (i > 0 && axiom[i - 1] is Symbol && castedSym.RoadAttr.BuildRoadType != ((Symbol)axiom[i - 1]).RoadAttr.BuildRoadType) {
+						newRoadViz = (CsgPolygon3D)Viz.Instantiate();
+						newRoadViz.GetNode<Path3D>("Path3D").Curve = new Curve3D();
+						curve = newRoadViz.GetNode<Path3D>("Path3D").Curve;
+						VizList.AddChild(newRoadViz);
+						newRoadViz.SetInstanceShaderParameter("color", roadColors[(int)castedSym.RoadAttr.BuildRoadType]);
+					}
 					addCurve(newRoadViz, castedSym.RoadAttr);
 				}
 			}
@@ -172,12 +193,13 @@ public partial class RoadTest : Node3D
 	}
 	
 
+	private RoadType curType = RoadType.NONE;
 	/* --------------------------- 
 	--------- Road Funcs ---------
 	------------------------------ */
 	private void addCurve(CsgPolygon3D poly, RoadAttributes roadAttr) {
 		Curve3D curve = poly.GetNode<Path3D>("Path3D").Curve;
-
+		
 		// Don't add duplicates
 		for (int i = 0; i < curve.PointCount; i++) {
 			if (curve.GetPointPosition(i).Equals(roadAttr.Position)) {
@@ -188,35 +210,35 @@ public partial class RoadTest : Node3D
 		Vector3 start;
 		Vector3 end;
 
-		// Sample points between last point and most recent point
+		// // Sample points between last point and most recent point
 		// if (curve.PointCount > 1) {
-		// 	// // GD.Print("Cur pos: " + curve.GetPointPosition(curve.PointCount - 1));
-		// 	// // GD.Print("Next pos: " + roadAttr.Position);
-		// 	// Vector3 from = curve.GetPointPosition(curve.PointCount - 1);
-		// 	// Vector3 to = roadAttr.Position;
-		// 	// // Sample 10 times TODO: make this customizable
-		// 	// for (int i = 1; i <= 20; i++) {
-		// 	// 	int increment = i / 20;
-		// 	// 	Vector3 scaledP = getNearestSurface(from.Lerp(to, increment));
-		// 	// 	start = getNearestNormal(scaledP - (roadAttr.Direction * roadAttr.RoadSize));
-		// 	// 	end = getNearestNormal(scaledP + (roadAttr.Direction * roadAttr.RoadSize));
-		// 	// 	curve.AddPoint(scaledP, start, end);
-		// 	// }
+		// 	// GD.Print("Cur pos: " + curve.GetPointPosition(curve.PointCount - 1));
+		// 	// GD.Print("Next pos: " + roadAttr.Position);
+		// 	Vector3 from = curve.GetPointPosition(curve.PointCount - 1);
+		// 	Vector3 to = roadAttr.Position;
+		// 	GD.Print("From: " + from);
+		// 	GD.Print("To: " + to);
+		// 	// Sample 10 times TODO: make this customizable
+		// 	for (int i = 1; i <= 10; i++) {
+		// 		float increment = i / 20.0f;
+		// 		// TODO: Get position from noise function
+		// 		Vector3 lerpedVector = from.Lerp(to, increment);
+		// 		Terrain T = (Terrain)Terrain.GetNode<StaticBody3D>("StaticBody3D").GetNode<MeshInstance3D>("Terrain");
+		// 		lerpedVector.Y = T.getHeight(lerpedVector.X, lerpedVector.Z);
+		// 		GD.Print("nearest: " + lerpedVector);
+		// 		start = getNearestNormal(lerpedVector - (roadAttr.Direction * roadAttr.RoadSize));
+		// 		end = getNearestNormal(lerpedVector + (roadAttr.Direction * roadAttr.RoadSize));
+		// 		curve.AddPoint(lerpedVector, start, end);
+		// 	}
 		// } else {
 
-		// Placing point
-		start = getNearestNormal(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
-		end = getNearestNormal(roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize));
-		curve.AddPoint(roadAttr.Position, start, end);
+			// Placing point
+			start = getNearestNormal(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
+			end = getNearestNormal(roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize));
 
-		// Pass vals to shader		
-		Vector3 firstPoint = curve.GetPointPosition(0);
-		Vector3 closestPoint = curve.GetClosestPoint(roadAttr.Position);
-		float length = (closestPoint - firstPoint).Length();
-		(poly.Material as ShaderMaterial).SetShaderParameter("firstPoint", firstPoint); 
-		(poly.Material as ShaderMaterial).SetShaderParameter("closestPoint", closestPoint); // Pass in point and length
-		(poly.Material as ShaderMaterial).SetShaderParameter("length", length);
-		(poly.Material as ShaderMaterial).SetShaderParameter("type", (float)roadAttr.BuildRoadType);
+			curve.AddPoint(roadAttr.Position, start, end);
+
+		//}
 	}
 
 	/* --------------------------- 

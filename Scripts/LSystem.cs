@@ -319,31 +319,30 @@ public partial class LSystem
 				roadAttr.BuildRoadType = RoadType.TUNNEL;
 			}
 			// If the road does not intersect the ground but is a tunnel, end tunneling
-			else if (!doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize)) {
+			else {
 				roadAttr.BuildRoadType = RoadType.TUNNELEND;
 			}
 		}
 
 		// If the next position hits terrain and the angle is too steep, turn it into a tunnel
-		if (doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize) && (roadAttr.CurAngle < initRuleAttr.MinAngle || roadAttr.CurAngle > initRuleAttr.MaxAngle)) {
+		else if (doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize) && (roadAttr.CurAngle < initRuleAttr.MinAngle || roadAttr.CurAngle > initRuleAttr.MaxAngle)) {
 			if (roadAttr.BuildRoadType != RoadType.TUNNELSTART) {
-				roadAttr.CurAngle = 0;
+				//roadAttr.CurAngle = 0;
 				//GD.Print("TunnelingStart");
 				roadAttr.BuildRoadType = RoadType.TUNNELSTART;
 			} 
 		}
 		// If the next position is over water and not hitting terrain, turn it into a bridge
-		else if (isAboveWater(roadAttr.Position)) {
+		else if (!doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize) && isAboveWater(roadAttr.Position)) {
 			roadAttr.BuildRoadType = RoadType.BRIDGE;
 		}
-
-		/*
-		Invalid environment scenarios:
-			Ground does not intersect, angle too steep
-			Ground not above water and not intersecting with ground
-		*/
+		// /*
+		// Invalid environment scenarios:
+		// 	Ground does not intersect, angle too steep
+		// 	Ground not above water and not intersecting with ground
+		// */
 		else {
-			sym.Del = -1;
+			roadAttr.BuildRoadType = RoadType.NONE;
 		}
 		sym.RoadAttr = roadAttr;
 		return sym;

@@ -65,7 +65,7 @@ public partial class Terrain : MeshInstance3D
         }
     }
 
-	private float getHeight(float x, float y) {
+	public float getHeight(float x, float y) {
 		return _noise.GetNoise2D(x, y) * _height;
 	}
 
