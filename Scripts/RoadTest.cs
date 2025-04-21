@@ -206,17 +206,20 @@ public partial class RoadTest : Node3D
 	--------- Road Funcs ---------
 	------------------------------ */
 	private void addCurve(CsgPolygon3D poly, RoadAttributes roadAttr) {
-		GD.Print("Placing at: " + roadAttr.Position);
+		//GD.Print("Placing at: " + roadAttr.Position);
 		Node3D viewTest = (Node3D)testNode.Instantiate();
 
-		RoadList.AddChild(viewTest);
-		viewTest.Position = roadAttr.Position;
+		//RoadList.AddChild(viewTest);
+		//viewTest.Position = roadAttr.Position;
 
-		Curve3D curve = poly.GetNode<Path3D>("Path3D").Curve;
+		Path3D path = poly.GetNode<Path3D>("Path3D");
+		Curve3D curve = path.Curve;
+	
+		Vector3 localPos = path.ToLocal(roadAttr.Position);
 	
 		// Don't add duplicates
 		for (int i = 0; i < curve.PointCount; i++) {
-			if (roadAttr.Position.DistanceTo(curve.GetPointPosition(i)) <= Mathf.Epsilon) {
+			if (localPos.DistanceTo(curve.GetPointPosition(i)) <= Mathf.Epsilon) {
 				return;
 			}
 		}
@@ -224,34 +227,14 @@ public partial class RoadTest : Node3D
 		Vector3 start;
 		Vector3 end;
 
-		// Sample points between last point and most recent point
-		// if (curve.PointCount > 1) {
-		// 	// GD.Print("Cur pos: " + curve.GetPointPosition(curve.PointCount - 1));
-		// 	// GD.Print("Next pos: " + roadAttr.Position);
-		// 	Vector3 from = curve.GetPointPosition(curve.PointCount - 1);
-		// 	Vector3 to = roadAttr.Position;
-		// 	// Sample 10 times TODO: make this customizable
-		// 	for (int i = 1; i <= 10; i++) {
-		// 		float increment = i / 20.0f;
-		// 		// TODO: Get position from noise function
-		// 		Vector3 lerpedVector = from.Lerp(to, increment);
-		// 		Terrain T = (Terrain)Terrain.GetNode<StaticBody3D>("StaticBody3D").GetNode<MeshInstance3D>("Terrain");
-		// 		//lerpedVector.Y = T.getHeight(lerpedVector.X, lerpedVector.Z);
-		// 		//GD.Print("nearest: " + lerpedVector);
-		// 		start = getNearestNormal(lerpedVector - (roadAttr.Direction * roadAttr.RoadSize));
-		// 		end = getNearestNormal(lerpedVector + (roadAttr.Direction * roadAttr.RoadSize));
-		// 		curve.AddPoint(lerpedVector);
-		// 	}
-		// } else {
+		// Placing point
+		start = getNearestNormal(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
+		end = getNearestNormal(roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize));
 
-			// Placing point
-			start = getNearestNormal(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
-			end = getNearestNormal(roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize));
-
-			curve.AddPoint(roadAttr.Position, start, end);
-			curvePositions.Add(roadAttr.Position);
-
-		//}
+		
+		curve.AddPoint(localPos);
+		
+		curvePositions.Add(roadAttr.Position);
 	}
 
 	/* --------------------------- 
