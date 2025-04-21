@@ -354,6 +354,9 @@ public partial class LSystem
 	private bool insertQuery(RoadAttributes roadAttr) {
 		//GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition + " With angle : " + roadAttr.Direction);
 		//GD.Print("Road locs: " +  string.Join("\n", roadLocations));
+		if (roadLocations.Contains(roadAttr.Position)) {
+			return false;
+		}
 		Vector3 startPos = roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize);
 		Vector3 endPos = roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize);
 
