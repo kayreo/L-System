@@ -1,12 +1,17 @@
 using Godot;
+using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 
 public partial class RoadTest : Node3D
 {
 
     private float progress = 0.0f;  // Progress along the curve (0 to 1)
     private float speed = 0.1f;  // Speed at which the cylinder moves along the curve
+
+	[Export]
+	public PackedScene testNode { get; set; }
 
 	[Export]
 	public PackedScene Viz { get; set; }
@@ -174,6 +179,7 @@ public partial class RoadTest : Node3D
 				//GD.Print("ID: ", castedSym.ID);
 				if (castedSym.ID == "A" || castedSym.ID == "Br" || castedSym.ID == "T" || castedSym.ID == "T1" || castedSym.ID == "T2") {
 					if (i > 0 && axiom[i - 1] is Symbol && castedSym.RoadAttr.BuildRoadType != ((Symbol)axiom[i - 1]).RoadAttr.BuildRoadType) {
+						//GD.Print("Changing: " + castedSym.ID + " from: " + ((Symbol)axiom[i - 1]).ID);
 						newRoadViz = (CsgPolygon3D)Viz.Instantiate();
 						newRoadViz.GetNode<Path3D>("Path3D").Curve = new Curve3D();
 						curve = newRoadViz.GetNode<Path3D>("Path3D").Curve;
@@ -198,11 +204,17 @@ public partial class RoadTest : Node3D
 	--------- Road Funcs ---------
 	------------------------------ */
 	private void addCurve(CsgPolygon3D poly, RoadAttributes roadAttr) {
+		GD.Print("Placing at: " + roadAttr.Position);
+		Node3D viewTest = (Node3D)testNode.Instantiate();
+
+		RoadList.AddChild(viewTest);
+		viewTest.Position = roadAttr.Position;
+
 		Curve3D curve = poly.GetNode<Path3D>("Path3D").Curve;
 		
 		// Don't add duplicates
 		for (int i = 0; i < curve.PointCount; i++) {
-			if (curve.GetPointPosition(i).Equals(roadAttr.Position)) {
+			if (roadAttr.Position.DistanceTo(curve.GetPointPosition(i)) <= Mathf.Epsilon) {
 				return;
 			}
 		}
@@ -210,25 +222,23 @@ public partial class RoadTest : Node3D
 		Vector3 start;
 		Vector3 end;
 
-		// // Sample points between last point and most recent point
+		// Sample points between last point and most recent point
 		// if (curve.PointCount > 1) {
 		// 	// GD.Print("Cur pos: " + curve.GetPointPosition(curve.PointCount - 1));
 		// 	// GD.Print("Next pos: " + roadAttr.Position);
 		// 	Vector3 from = curve.GetPointPosition(curve.PointCount - 1);
 		// 	Vector3 to = roadAttr.Position;
-		// 	GD.Print("From: " + from);
-		// 	GD.Print("To: " + to);
 		// 	// Sample 10 times TODO: make this customizable
 		// 	for (int i = 1; i <= 10; i++) {
 		// 		float increment = i / 20.0f;
 		// 		// TODO: Get position from noise function
 		// 		Vector3 lerpedVector = from.Lerp(to, increment);
 		// 		Terrain T = (Terrain)Terrain.GetNode<StaticBody3D>("StaticBody3D").GetNode<MeshInstance3D>("Terrain");
-		// 		lerpedVector.Y = T.getHeight(lerpedVector.X, lerpedVector.Z);
-		// 		GD.Print("nearest: " + lerpedVector);
+		// 		//lerpedVector.Y = T.getHeight(lerpedVector.X, lerpedVector.Z);
+		// 		//GD.Print("nearest: " + lerpedVector);
 		// 		start = getNearestNormal(lerpedVector - (roadAttr.Direction * roadAttr.RoadSize));
 		// 		end = getNearestNormal(lerpedVector + (roadAttr.Direction * roadAttr.RoadSize));
-		// 		curve.AddPoint(lerpedVector, start, end);
+		// 		curve.AddPoint(lerpedVector);
 		// 	}
 		// } else {
 

@@ -1,6 +1,7 @@
-[gd_scene load_steps=9 format=3 uid="uid://63rl4s70duft"]
+[gd_scene load_steps=10 format=3 uid="uid://63rl4s70duft"]
 
 [ext_resource type="Script" path="res://Scripts/RoadTest.cs" id="1_h3pjn"]
+[ext_resource type="PackedScene" uid="uid://d0h2vght41whl" path="res://Scenes/tunnel.tscn" id="2_sqyfr"]
 [ext_resource type="PackedScene" uid="uid://p86428lxwsrl" path="res://Scenes/popDensity.tscn" id="3_5hqd3"]
 [ext_resource type="PackedScene" uid="uid://bjvv0k48qanhu" path="res://Scenes/terrain.tscn" id="4_8pg8q"]
 [ext_resource type="PackedScene" uid="uid://qhkd1nykrcfm" path="res://Scenes/player.tscn" id="5_2y8xt"]
@@ -16,10 +17,12 @@ albedo_color = Color(0.298039, 0.933333, 0.709804, 1)
 
 [node name="roadTest" type="Node3D"]
 script = ExtResource("1_h3pjn")
+testNode = ExtResource("2_sqyfr")
 Viz = ExtResource("7_vytjq")
 Destination = ExtResource("3_5hqd3")
-Iterations = 30
+Iterations = 20
 ShowTerrain = false
+InstantGen = false
 
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 761.183, 0)

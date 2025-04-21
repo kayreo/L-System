@@ -1,12 +1,20 @@
 shader_type spatial;
 
-instance uniform vec3 color;
+uniform vec3 region_min = vec3(0.0, 0.0, 1.0);
+uniform vec3 region_max = vec3(0.0, 0.0, -50.0);
+
+uniform float type = 0.0;
+uniform float length = 0.0;
+uniform vec3 firstPoint;
+uniform vec3 closestPoint;
+uniform float color = 1;
 
 // start of entire curve
 // value = point - start / length
 // color = vec3(value)
 void vertex() {
-	COLOR = vec4(color.xyz, 1.0);
+	vec3 val = (closestPoint - VERTEX) / length * type;
+	COLOR = vec4(val.xyz, 1.0);
 }
 
 void fragment() {

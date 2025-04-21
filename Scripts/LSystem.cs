@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Data.Common;
 using System.Diagnostics.SymbolStore;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 public partial class LSystem
 {
@@ -217,8 +218,8 @@ public partial class LSystem
 		ruleAttrs.Clear();
 		roadAttrs.Clear();
 
-		int delayB1 = 3;
-		int delayB2 = 3;
+		int delayB1 = -3;
+		int delayB2 = -3;
 		int delayR = 3;
 		
 		int delayBranch = curRoadAttr.Branched;
@@ -241,8 +242,8 @@ public partial class LSystem
 		// If the road is branched, modify delays for roads and have road ignore nearest destinations
 		else {
 			delayR = 0;
-			delayB1 = 1;
-			delayB2 = 2;
+			delayB1 = -1;
+			delayB2 = -2;
 			nextAngR = 0;
 			delayBranch = curRoadAttr.Branched - 1;
 			// If the road's delay is up, start angling to next destination
@@ -364,12 +365,15 @@ public partial class LSystem
 			// Same position, or near position from a certain threshold
 			Vector3 rStart;
 			Vector3 rEnd;
+			if (roadAttr.Position.DistanceTo(pos) <= Mathf.Epsilon) {
+				return false;
+			}
 			if (lineIntersectsLine(startPos, endPos, startPos2, endPos2, out rStart, out rEnd) && 
 					rStart.DistanceTo(rEnd) <= Mathf.Epsilon) {
 				return false;
 			}
 		}
-		roadLocations.Add(roadAttr.Position);
+		getNearestSurface(roadAttr.Position);
         roadDirections.Add(roadAttr.Direction);
 		return true;
 		
