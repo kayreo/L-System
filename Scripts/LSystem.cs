@@ -407,7 +407,7 @@ public partial class LSystem
 		Vector3 startPos = pos - (dir * size);
 		Vector3 endPos = pos + (dir * size);
 		
-		if (pos.DistanceTo(getNearestSurface(startPos)) <= Mathf.Epsilon) {
+		if (startPos.Y > getNearestSurface(startPos).Y || endPos.Y < getNearestSurface(endPos).Y) {
 			// heightmap intersects with cur position road, need to be a tunnel
 			//if (checkHeight.Y > pos.Y) {
 				//GD.Print("Intersecting with ground");
@@ -416,7 +416,7 @@ public partial class LSystem
 		}
 		return false;
 	}
-
+	
 	// Line intersection code by by Ronald Holthuizen from: https://paulbourke.net/geometry/pointlineplane/calclineline.cs
 	public static bool lineIntersectsLine(Vector3 line1Point1, Vector3 line1Point2, 
 		Vector3 line2Point1, Vector3 line2Point2, out Vector3 resultSegmentPoint1, out Vector3 resultSegmentPoint2) {
