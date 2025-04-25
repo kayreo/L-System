@@ -407,7 +407,7 @@ public partial class LSystem
 		Vector3 startPos = pos - (dir * size);
 		Vector3 endPos = pos + (dir * size);
 		
-		if (startPos.DistanceTo(getNearestSurface(startPos)) <= Mathf.Epsilon) {
+		if (pos.DistanceTo(getNearestSurface(startPos)) <= Mathf.Epsilon) {
 			// heightmap intersects with cur position road, need to be a tunnel
 			//if (checkHeight.Y > pos.Y) {
 				//GD.Print("Intersecting with ground");
