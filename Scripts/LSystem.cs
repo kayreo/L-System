@@ -342,6 +342,12 @@ public partial class LSystem
 		// 	Ground does not intersect, angle too steep
 		// 	Ground not above water and not intersecting with ground
 		// */
+		else if (!doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize) && (roadAttr.CurAngle < initRuleAttr.MinAngle || roadAttr.CurAngle > initRuleAttr.MaxAngle)) {
+			roadAttr.Branched = -1;
+		}
+		else if (!doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize) && !isAboveWater(roadAttr.Position)) {
+			roadAttr.Branched = -1;
+		}
 		else {
 			roadAttr.BuildRoadType = RoadType.NONE;
 		}
@@ -401,7 +407,7 @@ public partial class LSystem
 		Vector3 startPos = pos - (dir * size);
 		Vector3 endPos = pos + (dir * size);
 		
-		if (startPos.Y > getNearestSurface(startPos).Y || endPos.Y < getNearestSurface(endPos).Y) {
+		if (startPos.DistanceTo(getNearestSurface(startPos)) <= Mathf.Epsilon) {
 			// heightmap intersects with cur position road, need to be a tunnel
 			//if (checkHeight.Y > pos.Y) {
 				//GD.Print("Intersecting with ground");

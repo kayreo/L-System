@@ -72,7 +72,7 @@ public partial class RoadTest : Node3D
 	// Used when iterations change
 	private int i = 0;
 
-	private Stack<String> typeHist = new Stack<String>();
+	private Stack<Stack<String>> typeHist = new Stack<Stack<String>>();
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
@@ -111,6 +111,8 @@ public partial class RoadTest : Node3D
 			vizChild.GetNode<Path3D>("Path3D").Curve.ClearPoints();
 			vizChild.QueueFree();
 		}
+		typeHist.Clear();
+		typeHist.Push(new Stack<String>());
 		curves.Clear();
 		curCurve = null;
 		interpret(L.buildRoads(i));
@@ -171,6 +173,7 @@ public partial class RoadTest : Node3D
 
 	// Go through generated symbols and interperet
 	private void interpret(List<ISymbol> axiom) {
+		Stack<String> currentHist = typeHist.Pop();
 		CsgPolygon3D newRoadViz = (CsgPolygon3D)Viz.Instantiate();
 		newRoadViz.GetNode<Path3D>("Path3D").Curve = new Curve3D();
 		Curve3D curve = newRoadViz.GetNode<Path3D>("Path3D").Curve;
@@ -182,20 +185,20 @@ public partial class RoadTest : Node3D
 				Symbol castedSym = (Symbol)sym;
 				//GD.Print("ID: ", castedSym.ID);
 				if (castedSym.ID == "A" || castedSym.ID == "Br" || castedSym.ID == "T" || castedSym.ID == "T1" || castedSym.ID == "T2") {
-					if (typeHist.Count > 0 && typeHist.Peek() != castedSym.ID) {
+					if (currentHist.Count > 0 && currentHist.Peek() != castedSym.ID) {
 						//GD.Print("Changing: " + castedSym.ID + " from: " + ((Symbol)axiom[i - 1]).ID);
 						newRoadViz = (CsgPolygon3D)Viz.Instantiate();
 						newRoadViz.GetNode<Path3D>("Path3D").Curve = new Curve3D();
-						curve = newRoadViz.GetNode<Path3D>("Path3D").Curve;
 						VizList.AddChild(newRoadViz);
 						newRoadViz.SetInstanceShaderParameter("color", roadColors[(int)castedSym.RoadAttr.BuildRoadType]);
 					}
-					typeHist.Push(castedSym.ID);
+					currentHist.Push(castedSym.ID);
 					addCurve(newRoadViz, castedSym.RoadAttr);
 				}
 			}
 			// Branch
 			else if (sym is SymBranch) {
+				typeHist.Push(new Stack<String>());
 				SymBranch castedSym = (SymBranch)sym;
 				// Interpret symbols in this branch
 				interpret(castedSym.Syms);
@@ -210,11 +213,6 @@ public partial class RoadTest : Node3D
 	------------------------------ */
 	private void addCurve(CsgPolygon3D poly, RoadAttributes roadAttr) {
 		//GD.Print("Placing at: " + roadAttr.Position);
-		Node3D viewTest = (Node3D)testNode.Instantiate();
-
-		//RoadList.AddChild(viewTest);
-		//viewTest.Position = roadAttr.Position;
-
 		Path3D path = poly.GetNode<Path3D>("Path3D");
 		Curve3D curve = path.Curve;
 	
@@ -231,12 +229,13 @@ public partial class RoadTest : Node3D
 		Vector3 end;
 
 		// Placing point
-		start = getNearestNormal(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
-		end = getNearestNormal(roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize));
+		start = getNearestSurface(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
+		end = getNearestSurface(roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize));
 
 		
+		//curve.AddPoint(localPos);
+
 		curve.AddPoint(localPos);
-		
 		curvePositions.Add(roadAttr.Position);
 	}
 
