@@ -72,6 +72,8 @@ public partial class RoadTest : Node3D
 	// Used when iterations change
 	private int i = 0;
 
+	private Stack<String> typeHist = new Stack<String>();
+
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
@@ -180,7 +182,7 @@ public partial class RoadTest : Node3D
 				Symbol castedSym = (Symbol)sym;
 				//GD.Print("ID: ", castedSym.ID);
 				if (castedSym.ID == "A" || castedSym.ID == "Br" || castedSym.ID == "T" || castedSym.ID == "T1" || castedSym.ID == "T2") {
-					if (i > 0 && axiom[i - 1] is Symbol && castedSym.RoadAttr.BuildRoadType != ((Symbol)axiom[i - 1]).RoadAttr.BuildRoadType) {
+					if (typeHist.Count > 0 && typeHist.Peek() != castedSym.ID) {
 						//GD.Print("Changing: " + castedSym.ID + " from: " + ((Symbol)axiom[i - 1]).ID);
 						newRoadViz = (CsgPolygon3D)Viz.Instantiate();
 						newRoadViz.GetNode<Path3D>("Path3D").Curve = new Curve3D();
@@ -188,6 +190,7 @@ public partial class RoadTest : Node3D
 						VizList.AddChild(newRoadViz);
 						newRoadViz.SetInstanceShaderParameter("color", roadColors[(int)castedSym.RoadAttr.BuildRoadType]);
 					}
+					typeHist.Push(castedSym.ID);
 					addCurve(newRoadViz, castedSym.RoadAttr);
 				}
 			}
