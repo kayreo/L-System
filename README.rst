@@ -1,0 +1,12 @@
+L-System for Procedural Road Generation
+#####################
+:Contributor(s): Kayla Han
+:Instructor: Dr. Sarah Abraham
+:Class: CS 370
+:School: University of Texas at Austin
+:Course: Undergraduate Reading and Research
+:Tools used: Godot 4.0, C#
+
+This repository holds files for an ongoing independent study by Kayla Han and supervised by Dr. Sarah Abraham. The study focuses on exploring procedural generation using an L-system to generate a series of symbols based on a set of rules. Based on environmental data, the system then generates road patterns to satisfy certain goals such as trending toward population density.
+
+These files are contained within a Godot project and can be opened using Godot 4.0.
