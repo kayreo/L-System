@@ -216,27 +216,27 @@ public partial class RoadTest : Node3D
 		Path3D path = poly.GetNode<Path3D>("Path3D");
 		Curve3D curve = path.Curve;
 	
-		Vector3 localPos = path.ToLocal(roadAttr.Position);
-	
+		//Vector3 localPos = path.ToLocal(roadAttr.Position);
+
+		Vector3 start = path.ToLocal(roadAttr.StartPosition);
+		Vector3 end = path.ToLocal(roadAttr.EndPosition);
+
 		// Don't add duplicates
 		for (int i = 0; i < curve.PointCount; i++) {
-			if (localPos.DistanceTo(curve.GetPointPosition(i)) <= Mathf.Epsilon) {
+			if (start.DistanceTo(curve.GetPointPosition(i)) <= Mathf.Epsilon || end.DistanceTo(curve.GetPointPosition(i)) <= Mathf.Epsilon) {
 				return;
 			}
 		}
 
-		Vector3 start;
-		Vector3 end;
+		//GD.Print("Next pos: " + start + " - " + end);
 
-		// Placing point
-		start = getNearestSurface(roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize));
-		end = getNearestSurface(roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize));
-
-		
-		//curve.AddPoint(localPos);
-
-		curve.AddPoint(localPos);
-		curvePositions.Add(roadAttr.Position);
+		// Need to start the curve
+		if (curve.PointCount == 0) {
+			curve.AddPoint(start);
+			curvePositions.Add(start);
+		}
+		curve.AddPoint(end);
+		curvePositions.Add(end);
 	}
 
 	/* --------------------------- 

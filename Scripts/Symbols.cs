@@ -32,8 +32,9 @@ public float MinAngle { get; set; }
 
 // Struct for road attributes
 public struct RoadAttributes {
-	public RoadAttributes(Vector3 pos, Vector3 dir, float curAng, float roadSize, RoadType rt, int branchDelay) {
-		Position = pos;
+	public RoadAttributes(Vector3 startPos, Vector3 endPos, Vector3 dir, float curAng, float roadSize, RoadType rt, int branchDelay) {
+		StartPosition = startPos;
+		EndPosition = endPos;
 		Direction = dir;
 		CurAngle = curAng;
 		RoadSize = roadSize;
@@ -41,14 +42,15 @@ public struct RoadAttributes {
 		Branched = branchDelay;
 	}
 
-	public Vector3 Position { get; set; }
+	public Vector3 StartPosition { get; set; }
+	public Vector3 EndPosition { get; set; }
 	public Vector3 Direction { get; set; }
 	public float CurAngle { get; set; }
 	public float RoadSize { get; set; }
 	public RoadType BuildRoadType { get; set; }
 	public int Branched { get; set; }
 
-	public override string ToString() => $"(Pos:{Position}, Dir:{Direction}, Angle: {CurAngle}, Road:{BuildRoadType})";
+	public override string ToString() => $"(Pos:{StartPosition} - {EndPosition}, Dir:{Direction}, Angle: {CurAngle}, Road:{BuildRoadType})";
 }
 
 // Generic symbol type to account for reg symbols and symbol containers

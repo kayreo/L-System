@@ -61,7 +61,7 @@ public partial class LSystem
 		SeaLevel = seaLevel;
 		initSize = rs;
 		
-		initRoadAttr = new RoadAttributes(Vector3.Zero, Vector3.Forward, 0f, initSize, RoadType.NONE, -1);
+		initRoadAttr = new RoadAttributes(Vector3.Zero, initSize * Vector3.Forward, Vector3.Forward, 0f, initSize, RoadType.NONE, -1);
 
 		if (rules.ContainsKey(Rule)) {
 			initRuleAttr = rules[Rule];
@@ -225,11 +225,13 @@ public partial class LSystem
 		int delayBranch = curRoadAttr.Branched;
 
 		// Increment position to next nearest surface position
-		Vector3 nextPos = getNearestSurface(curRoadAttr.Position + curRoadAttr.RoadSize * curRoadAttr.Direction);
+		Vector3 nextStartPos = curRoadAttr.EndPosition;
+		Vector3 nextEndPos = getNearestSurface(curRoadAttr.EndPosition + curRoadAttr.RoadSize * curRoadAttr.Direction);
+			GD.Print("Next pos: " + nextStartPos + " - " + nextEndPos);
 
 		// Adjust angle and dir for road to conform to surface
 		// Project the road onto the nearest surface normal
-		Vector3 nearestNormal = getNearestNormal(curRoadAttr.Position);
+		Vector3 nearestNormal = getNearestNormal(curRoadAttr.EndPosition);
 		Vector3 projectedDir = curRoadAttr.Direction.Project(nearestNormal);
 
 		// First generate regular moving forward angle
@@ -237,7 +239,7 @@ public partial class LSystem
 		
 		// If the road is not going to branch, angle the next road to the nearest destination
 		if (curRoadAttr.Branched < 0) {
-			nextAngR = getClosestDestAngle(nextPos, curRoadAttr.Direction);
+			nextAngR = getClosestDestAngle(nextEndPos, curRoadAttr.Direction);
 		}
 		// If the road is branched, modify delays for roads and have road ignore nearest destinations
 		else {
@@ -248,7 +250,7 @@ public partial class LSystem
 			delayBranch = curRoadAttr.Branched - 1;
 			// If the road's delay is up, start angling to next destination
 			if (curRoadAttr.Branched == 0) {
-				nextAngR = getClosestDestAngle(nextPos, curRoadAttr.Direction);
+				nextAngR = getClosestDestAngle(nextEndPos, curRoadAttr.Direction);
 			}
 		}
 
@@ -263,6 +265,14 @@ public partial class LSystem
 		float nextAngB2 = curRoadAttr.CurAngle - (float)GD.RandRange(curRuleAttr.MinAngle, curRuleAttr.MaxAngle);
 		Vector3 nextDirB2 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB2).Normalized();
 
+		// Make sure the segment isn't starting and ending at the same position
+		if (nextStartPos.Equals(nextEndPos) || nextStartPos.DistanceTo(nextEndPos) <= Mathf.Epsilon) {
+			delayR = -1;
+			delayB1 = -1;
+			delayB2 = -1;
+			GD.Print("Invalid segment");
+		}
+
 		// Add delays to array
 		delays.Add(delayB1);
 		delays.Add(delayB2);
@@ -270,15 +280,15 @@ public partial class LSystem
 
 		// Generate roadAttrs
 		// Branch 1: Try branching to one direction
-		RoadAttributes newBranch1 = new RoadAttributes(nextPos, nextDirB1, nextAngB1, curRoadAttr.RoadSize, RoadType.NONE, delayBranch);
+		RoadAttributes newBranch1 = new RoadAttributes(nextStartPos, nextEndPos, nextDirB1, nextAngB1, curRoadAttr.RoadSize, RoadType.NONE, delayBranch);
 		roadAttrs.Add(newBranch1);
 
 		// Branch 2: Try branching to another direction
-		RoadAttributes newBranch2 = new RoadAttributes(nextPos, nextDirB2, nextAngB2, curRoadAttr.RoadSize, RoadType.NONE, delayBranch);
+		RoadAttributes newBranch2 = new RoadAttributes(nextStartPos, nextEndPos, nextDirB2, nextAngB2, curRoadAttr.RoadSize, RoadType.NONE, delayBranch);
 		roadAttrs.Add(newBranch2);
 
 		// Road: Try to move forward
-		RoadAttributes newRoA = new RoadAttributes(nextPos, nextDirR, nextAngR, curRoadAttr.RoadSize, curRoadAttr.BuildRoadType, delayBranch);
+		RoadAttributes newRoA = new RoadAttributes(nextStartPos, nextEndPos, nextDirR, nextAngR, curRoadAttr.RoadSize, curRoadAttr.BuildRoadType, delayBranch);
 		roadAttrs.Add(newRoA);
 	}
 
@@ -313,10 +323,12 @@ public partial class LSystem
 		// Get the attribute from the passed in symbol
 		RoadAttributes roadAttr = sym.RoadAttr;
 
+		Vector3 midPoint = (roadAttr.StartPosition + roadAttr.EndPosition) / 2;
+
 		// If the current road is in the middle of tuenneling, check if tunnel needs to continue or stop
 		if (roadAttr.BuildRoadType == RoadType.TUNNELSTART || roadAttr.BuildRoadType == RoadType.TUNNEL) {
 			roadAttr.CurAngle = 0;
-			if (doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize)) {
+			if (doesGroundIntersect(midPoint, roadAttr.Direction, roadAttr.RoadSize)) {
 				roadAttr.BuildRoadType = RoadType.TUNNEL;
 			}
 			// If the road does not intersect the ground but is a tunnel, end tunneling
@@ -326,7 +338,7 @@ public partial class LSystem
 		}
 
 		// If the next position hits terrain and the angle is too steep, turn it into a tunnel
-		else if (doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize) && (roadAttr.CurAngle < initRuleAttr.MinAngle || roadAttr.CurAngle > initRuleAttr.MaxAngle)) {
+		else if (doesGroundIntersect(midPoint, roadAttr.Direction, roadAttr.RoadSize) && (roadAttr.CurAngle < initRuleAttr.MinAngle || roadAttr.CurAngle > initRuleAttr.MaxAngle)) {
 			if (roadAttr.BuildRoadType != RoadType.TUNNELSTART) {
 				//roadAttr.CurAngle = 0;
 				//GD.Print("TunnelingStart");
@@ -334,7 +346,7 @@ public partial class LSystem
 			} 
 		}
 		// If the next position is over water and not hitting terrain, turn it into a bridge
-		else if (!doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize) && isAboveWater(roadAttr.Position)) {
+		else if (!doesGroundIntersect(midPoint, roadAttr.Direction, roadAttr.RoadSize) && isAboveWater(midPoint)) {
 			roadAttr.BuildRoadType = RoadType.BRIDGE;
 		}
 		// /*
@@ -342,10 +354,10 @@ public partial class LSystem
 		// 	Ground does not intersect, angle too steep
 		// 	Ground not above water and not intersecting with ground
 		// */
-		else if (!doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize) && (roadAttr.CurAngle < initRuleAttr.MinAngle || roadAttr.CurAngle > initRuleAttr.MaxAngle)) {
+		else if (!doesGroundIntersect(midPoint, roadAttr.Direction, roadAttr.RoadSize) && (roadAttr.CurAngle < initRuleAttr.MinAngle || roadAttr.CurAngle > initRuleAttr.MaxAngle)) {
 			roadAttr.Branched = -1;
 		}
-		else if (!doesGroundIntersect(roadAttr.Position, roadAttr.Direction, roadAttr.RoadSize) && !isAboveWater(roadAttr.Position)) {
+		else if (!doesGroundIntersect(midPoint, roadAttr.Direction, roadAttr.RoadSize) && !isAboveWater(midPoint)) {
 			roadAttr.Branched = -1;
 		}
 		else {
@@ -360,29 +372,30 @@ public partial class LSystem
 	private bool insertQuery(RoadAttributes roadAttr) {
 		//GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition + " With angle : " + roadAttr.Direction);
 		//GD.Print("Road locs: " +  string.Join("\n", roadLocations));
-		if (roadLocations.Contains(roadAttr.Position)) {
+		if (roadLocations.Contains(roadAttr.StartPosition) || roadLocations.Contains(roadAttr.EndPosition)) {
 			return false;
 		}
-		Vector3 startPos = roadAttr.Position - (roadAttr.Direction * roadAttr.RoadSize);
-		Vector3 endPos = roadAttr.Position + (roadAttr.Direction * roadAttr.RoadSize);
 
+		Vector3 midPoint = (roadAttr.StartPosition + roadAttr.EndPosition) / 2;
+		
 		for (int i = 0; i < roadLocations.Count; i++) {
             Vector3 pos = roadLocations[i];
-			Vector3 dir = roadDirections[i];
+			Vector3 dir = roadDirections[i/2];
 			Vector3 startPos2 = pos - (dir * roadAttr.RoadSize);
 			Vector3 endPos2 = pos + (dir * roadAttr.RoadSize);
 			// Same position, or near position from a certain threshold
 			Vector3 rStart;
 			Vector3 rEnd;
-			if (roadAttr.Position.DistanceTo(pos) <= Mathf.Epsilon) {
+			if (midPoint.DistanceTo(pos) <= Mathf.Epsilon) {
 				return false;
 			}
-			if (lineIntersectsLine(startPos, endPos, startPos2, endPos2, out rStart, out rEnd) && 
+			if (lineIntersectsLine(roadAttr.StartPosition, roadAttr.EndPosition, startPos2, endPos2, out rStart, out rEnd) && 
 					rStart.DistanceTo(rEnd) <= Mathf.Epsilon) {
 				return false;
 			}
 		}
-		getNearestSurface(roadAttr.Position);
+		roadLocations.Add(roadAttr.StartPosition);
+		roadLocations.Add(roadAttr.EndPosition);
         roadDirections.Add(roadAttr.Direction);
 		return true;
 		
