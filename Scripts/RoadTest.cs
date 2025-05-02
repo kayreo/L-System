@@ -190,8 +190,8 @@ public partial class RoadTest : Node3D
 						newRoadViz = (CsgPolygon3D)Viz.Instantiate();
 						newRoadViz.GetNode<Path3D>("Path3D").Curve = new Curve3D();
 						VizList.AddChild(newRoadViz);
-						newRoadViz.SetInstanceShaderParameter("color", roadColors[(int)castedSym.RoadAttr.BuildRoadType]);
 					}
+					newRoadViz.SetInstanceShaderParameter("color", roadColors[(int)castedSym.RoadAttr.BuildRoadType]);
 					currentHist.Push(castedSym.ID);
 					addCurve(newRoadViz, castedSym.RoadAttr);
 				}

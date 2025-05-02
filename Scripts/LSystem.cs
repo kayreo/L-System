@@ -218,60 +218,38 @@ public partial class LSystem
 		ruleAttrs.Clear();
 		roadAttrs.Clear();
 
+		// Delays for when a road should split
 		int delayB1 = 3;
 		int delayB2 = 3;
-		int delayR = 3;
+		int delayR = 1;
 		
-		int delayBranch = curRoadAttr.Branched;
+		// Delays for how long roads should ignore nearest destinations
+		int delayBranchR = curRoadAttr.Branched;
+		int delayBranchB1 = 3;
+		int delayBranchB2 = 3;
+
+		Vector3 nextDir = curRoadAttr.Direction.Rotated(Vector3.Up, curRoadAttr.CurAngle);
+		if (curRoadAttr.Branched < 0) {
+			nextDir = curRoadAttr.Direction.Rotated(Vector3.Up, getClosestDestAngle(Vector3.Up, curRoadAttr.Direction));
+		}
 
 		// Increment position to next nearest surface position
 		Vector3 nextStartPos = curRoadAttr.EndPosition;
-		Vector3 nextEndPos = getNearestSurface(curRoadAttr.EndPosition + curRoadAttr.RoadSize * curRoadAttr.Direction);
-			GD.Print("Next pos: " + nextStartPos + " - " + nextEndPos);
+		Vector3 nextEndPos = curRoadAttr.EndPosition + (curRoadAttr.RoadSize * nextDir);
+		//GD.Print("Next pos: " + nextStartPos + " - " + nextEndPos);
 
-		// Adjust angle and dir for road to conform to surface
-		// Project the road onto the nearest surface normal
-		Vector3 nearestNormal = getNearestNormal(curRoadAttr.EndPosition);
-		Vector3 projectedDir = curRoadAttr.Direction.Project(nearestNormal);
-
-		// First generate regular moving forward angle
-		float nextAngR = curRoadAttr.Direction.AngleTo(projectedDir);
-		
-		// If the road is not going to branch, angle the next road to the nearest destination
-		if (curRoadAttr.Branched < 0) {
-			nextAngR = getClosestDestAngle(nextEndPos, curRoadAttr.Direction);
+		// If the road is branched, modify delays for roads for more frequent branching and continue ignoring road
+		if (curRoadAttr.Branched >= 0) {
+			delayBranchR = curRoadAttr.Branched - 1;
 		}
-		// If the road is branched, modify delays for roads and have road ignore nearest destinations
-		else {
-			delayR = 0;
-			delayB1 = 1;
-			delayB2 = 2;
-			nextAngR = 0;
-			delayBranch = curRoadAttr.Branched - 1;
-			// If the road's delay is up, start angling to next destination
-			if (curRoadAttr.Branched == 0) {
-				nextAngR = getClosestDestAngle(nextEndPos, curRoadAttr.Direction);
-			}
-		}
-
-		// Adjust direction with updated angle
-		Vector3 nextDirR = curRoadAttr.Direction.Rotated(nearestNormal, nextAngR).Normalized();
 
 		// Adjust angle and dir for branch 1 by randomly picking from angle range
 		float nextAngB1 = curRoadAttr.CurAngle + (float)GD.RandRange(curRuleAttr.MinAngle, curRuleAttr.MaxAngle);
-		Vector3 nextDirB1 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB1).Normalized();
+		//Vector3 nextDirB1 = nextDir.Rotated(Vector3.Up, nextAngB1).Normalized();
 
 		// Adjust angle and dir for branch 2 by randomly picking from angle range
 		float nextAngB2 = curRoadAttr.CurAngle - (float)GD.RandRange(curRuleAttr.MinAngle, curRuleAttr.MaxAngle);
-		Vector3 nextDirB2 = curRoadAttr.Direction.Rotated(Vector3.Up, nextAngB2).Normalized();
-
-		// Make sure the segment isn't starting and ending at the same position
-		if (nextStartPos.Equals(nextEndPos) || nextStartPos.DistanceTo(nextEndPos) <= Mathf.Epsilon) {
-			delayR = -1;
-			delayB1 = -1;
-			delayB2 = -1;
-			GD.Print("Invalid segment");
-		}
+		//Vector3 nextDirB2 = nextDir.Rotated(Vector3.Up, nextAngB2).Normalized();
 
 		// Add delays to array
 		delays.Add(delayB1);
@@ -280,15 +258,15 @@ public partial class LSystem
 
 		// Generate roadAttrs
 		// Branch 1: Try branching to one direction
-		RoadAttributes newBranch1 = new RoadAttributes(nextStartPos, nextEndPos, nextDirB1, nextAngB1, curRoadAttr.RoadSize, RoadType.NONE, delayBranch);
+		RoadAttributes newBranch1 = new RoadAttributes(nextStartPos, nextEndPos, curRoadAttr.Direction, nextAngB1, curRoadAttr.RoadSize, RoadType.NONE, delayBranchB1);
 		roadAttrs.Add(newBranch1);
 
 		// Branch 2: Try branching to another direction
-		RoadAttributes newBranch2 = new RoadAttributes(nextStartPos, nextEndPos, nextDirB2, nextAngB2, curRoadAttr.RoadSize, RoadType.NONE, delayBranch);
+		RoadAttributes newBranch2 = new RoadAttributes(nextStartPos, nextEndPos, curRoadAttr.Direction, nextAngB2, curRoadAttr.RoadSize, RoadType.NONE, delayBranchB2);
 		roadAttrs.Add(newBranch2);
 
 		// Road: Try to move forward
-		RoadAttributes newRoA = new RoadAttributes(nextStartPos, nextEndPos, nextDirR, nextAngR, curRoadAttr.RoadSize, curRoadAttr.BuildRoadType, delayBranch);
+		RoadAttributes newRoA = new RoadAttributes(nextStartPos, nextEndPos, nextDir, curRoadAttr.CurAngle, curRoadAttr.RoadSize, curRoadAttr.BuildRoadType, delayBranchR);
 		roadAttrs.Add(newRoA);
 	}
 
@@ -361,8 +339,33 @@ public partial class LSystem
 			roadAttr.Branched = -1;
 		}
 		else {
-			roadAttr.BuildRoadType = RoadType.NONE;
+
 		}
+			Vector3 surfacePosition = getNearestSurface(roadAttr.EndPosition);
+			// Adjust angle and dir for road to conform to surface
+			// Project the road onto the nearest surface normal
+			Vector3 nearestNormal = getNearestNormal(surfacePosition);
+			Vector3 projectedDir = roadAttr.Direction.Project(nearestNormal);
+
+			// First generate regular moving forward angle
+			float nextAngR = roadAttr.Direction.AngleTo(projectedDir);
+			// If the road is not going to branch, angle the next road to the nearest destination
+			if (roadAttr.Branched <= 0) {
+				nextAngR = getClosestDestAngle(surfacePosition, roadAttr.Direction);
+			} else {
+				nextAngR = 0;
+			}
+
+			// Adjust direction with updated angle
+			Vector3 nextDirR = roadAttr.Direction.Rotated(nearestNormal, nextAngR).Normalized();
+
+			roadAttr.EndPosition = surfacePosition;
+			roadAttr.Direction = nextDirR;
+			roadAttr.CurAngle = nextAngR;
+
+			roadAttr.BuildRoadType = RoadType.NONE;
+
+
 		sym.RoadAttr = roadAttr;
 		return sym;
 	}
@@ -373,6 +376,11 @@ public partial class LSystem
 		//GD.Print("Running inquery at " + roadAttr.Position + " Looking at " + roadAttr.LookPosition + " With angle : " + roadAttr.Direction);
 		//GD.Print("Road locs: " +  string.Join("\n", roadLocations));
 		if (roadLocations.Contains(roadAttr.StartPosition) || roadLocations.Contains(roadAttr.EndPosition)) {
+			return false;
+		}
+
+		// Make sure the segment isn't starting and ending at the same position
+		if (roadAttr.StartPosition.Equals(roadAttr.EndPosition) || roadAttr.StartPosition.DistanceTo(roadAttr.EndPosition) <= Mathf.Epsilon) {
 			return false;
 		}
 

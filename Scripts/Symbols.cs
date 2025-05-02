@@ -50,7 +50,7 @@ public struct RoadAttributes {
 	public RoadType BuildRoadType { get; set; }
 	public int Branched { get; set; }
 
-	public override string ToString() => $"(Pos:{StartPosition} - {EndPosition}, Dir:{Direction}, Angle: {CurAngle}, Road:{BuildRoadType})";
+	public override string ToString() => $"(Pos:{StartPosition} - {EndPosition}, Dir:{Direction}, Angle: {CurAngle}, Road:{BuildRoadType}, Until branch:{Branched})";
 }
 
 // Generic symbol type to account for reg symbols and symbol containers
