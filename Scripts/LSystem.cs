@@ -1,11 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data.Common;
-using System.Diagnostics.SymbolStore;
 using System.Linq;
-using System.Runtime.InteropServices;
 
 public partial class LSystem
 {
@@ -16,6 +12,9 @@ public partial class LSystem
 		{"RuleB", new RuleB()},
 		{"RuleBDel", new RuleBDel()}
 	};
+
+	// How sensitive collision detection is to consider roads overlapping
+	public float collSens = Mathf.Epsilon;
 
 	public Node3D RoadList;
 
@@ -302,10 +301,18 @@ public partial class LSystem
 		RoadAttributes roadAttr = sym.RoadAttr;
 
 		Vector3 midPoint = (roadAttr.StartPosition + roadAttr.EndPosition) / 2;
+		Vector3 nextPosition = roadAttr.EndPosition;
+
+		// Adjust angle and dir for road to conform to surface
+		// Project the road onto the nearest surface normal
+		Vector3 nearestNormal = Vector3.Up;//getNearestNormal(nextPosition);
+
+		// First generate regular moving forward angle
+		float nextAngR = roadAttr.Direction.AngleTo(roadAttr.Direction);
 
 		// If the current road is in the middle of tuenneling, check if tunnel needs to continue or stop
 		if (roadAttr.BuildRoadType == RoadType.TUNNELSTART || roadAttr.BuildRoadType == RoadType.TUNNEL) {
-			roadAttr.CurAngle = 0;
+			nextAngR = 0;
 			if (doesGroundIntersect(midPoint, roadAttr.Direction, roadAttr.RoadSize)) {
 				roadAttr.BuildRoadType = RoadType.TUNNEL;
 			}
@@ -317,9 +324,9 @@ public partial class LSystem
 
 		// If the next position hits terrain and the angle is too steep, turn it into a tunnel
 		else if (doesGroundIntersect(midPoint, roadAttr.Direction, roadAttr.RoadSize) && (roadAttr.CurAngle < initRuleAttr.MinAngle || roadAttr.CurAngle > initRuleAttr.MaxAngle)) {
+			nextAngR = 0;
 			if (roadAttr.BuildRoadType != RoadType.TUNNELSTART) {
 				//roadAttr.CurAngle = 0;
-				//GD.Print("TunnelingStart");
 				roadAttr.BuildRoadType = RoadType.TUNNELSTART;
 			} 
 		}
@@ -332,39 +339,30 @@ public partial class LSystem
 		// 	Ground does not intersect, angle too steep
 		// 	Ground not above water and not intersecting with ground
 		// */
-		else if (!doesGroundIntersect(midPoint, roadAttr.Direction, roadAttr.RoadSize) && (roadAttr.CurAngle < initRuleAttr.MinAngle || roadAttr.CurAngle > initRuleAttr.MaxAngle)) {
-			roadAttr.Branched = -1;
-		}
-		else if (!doesGroundIntersect(midPoint, roadAttr.Direction, roadAttr.RoadSize) && !isAboveWater(midPoint)) {
-			roadAttr.Branched = -1;
-		}
 		else {
-
-		}
-			Vector3 surfacePosition = getNearestSurface(roadAttr.EndPosition);
+			nextPosition = getNearestSurface(nextPosition);
 			// Adjust angle and dir for road to conform to surface
 			// Project the road onto the nearest surface normal
-			Vector3 nearestNormal = getNearestNormal(surfacePosition);
+			nearestNormal = getNearestNormal(nextPosition);
 			Vector3 projectedDir = roadAttr.Direction.Project(nearestNormal);
-
-			// First generate regular moving forward angle
-			float nextAngR = roadAttr.Direction.AngleTo(projectedDir);
-			// If the road is not going to branch, angle the next road to the nearest destination
-			if (roadAttr.Branched <= 0) {
-				nextAngR = getClosestDestAngle(surfacePosition, roadAttr.Direction);
-			} else {
-				nextAngR = 0;
-			}
-
-			// Adjust direction with updated angle
-			Vector3 nextDirR = roadAttr.Direction.Rotated(nearestNormal, nextAngR).Normalized();
-
-			roadAttr.EndPosition = surfacePosition;
-			roadAttr.Direction = nextDirR;
-			roadAttr.CurAngle = nextAngR;
-
+			nextAngR = roadAttr.Direction.AngleTo(projectedDir);
 			roadAttr.BuildRoadType = RoadType.NONE;
+		}
 
+		// First generate regular moving forward angle
+		// If the road is not going to branch, angle the next road to the nearest destination
+		if (roadAttr.Branched <= 0) {
+			nextAngR = getClosestDestAngle(nextPosition, roadAttr.Direction);
+		} else {
+			nextAngR = 0;
+		}
+
+		// Adjust direction with updated angle
+		Vector3 nextDirR = roadAttr.Direction.Rotated(nearestNormal, nextAngR).Normalized();
+
+		roadAttr.EndPosition = nextPosition;
+		roadAttr.Direction = nextDirR;
+		roadAttr.CurAngle = nextAngR;
 
 		sym.RoadAttr = roadAttr;
 		return sym;
@@ -394,11 +392,11 @@ public partial class LSystem
 			// Same position, or near position from a certain threshold
 			Vector3 rStart;
 			Vector3 rEnd;
-			if (midPoint.DistanceTo(pos) <= Mathf.Epsilon) {
+			if (midPoint.DistanceTo(pos) <= collSens) {
 				return false;
 			}
 			if (lineIntersectsLine(roadAttr.StartPosition, roadAttr.EndPosition, startPos2, endPos2, out rStart, out rEnd) && 
-					rStart.DistanceTo(rEnd) <= Mathf.Epsilon) {
+					rStart.DistanceTo(rEnd) <= collSens) {
 				return false;
 			}
 		}
@@ -439,7 +437,7 @@ public partial class LSystem
 	}
 	
 	// Line intersection code by by Ronald Holthuizen from: https://paulbourke.net/geometry/pointlineplane/calclineline.cs
-	public static bool lineIntersectsLine(Vector3 line1Point1, Vector3 line1Point2, 
+	public bool lineIntersectsLine(Vector3 line1Point1, Vector3 line1Point2, 
 		Vector3 line2Point1, Vector3 line2Point2, out Vector3 resultSegmentPoint1, out Vector3 resultSegmentPoint2) {
 		// Algorithm is ported from the C algorithm of 
 		// Paul Bourke at http://local.wasp.uwa.edu.au/~pbourke/geometry/lineline3d/
@@ -453,11 +451,11 @@ public partial class LSystem
 		Vector3 p13 = p1 - p3;
 		Vector3 p43 = p4 - p3;
 		
-		if (p43.LengthSquared() < Mathf.Epsilon) {
+		if (p43.LengthSquared() < collSens) {
 			return false;
 		}
 		Vector3 p21 = p2 - p1;
-		if (p21.LengthSquared() < Mathf.Epsilon) {
+		if (p21.LengthSquared() < collSens) {
 			return false;
 		}
 		
@@ -468,7 +466,7 @@ public partial class LSystem
 		double d2121 = p21.X * (double)p21.X + (double)p21.Y * p21.Y + (double)p21.Z * p21.Z;
 		
 		double denom = d2121 * d4343 - d4321 * d4321;
-		if (Math.Abs(denom) < Mathf.Epsilon) {
+		if (Math.Abs(denom) < collSens) {
 			return false;
 		}
 		double numer = d1343 * d4321 - d1321 * d4343;

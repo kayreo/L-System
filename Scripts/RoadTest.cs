@@ -58,11 +58,11 @@ public partial class RoadTest : Node3D
 	private Godot.Collections.Array<Vector3> curvePositions = new Godot.Collections.Array<Vector3>();
 
 	private Godot.Collections.Array<Vector3> roadColors = new Godot.Collections.Array<Vector3>{
-		new Vector3(165, 42, 42),	// Regular road
+		new Vector3(0, 255, 255),	// Regular road
 		new Vector3(0, 0, 255),		// Bridge
-		new Vector3(0, 0, 0),		// Tunnel start
+		new Vector3(255, 255, 255),		// Tunnel start
 		new Vector3(255, 0, 0),		// Tunnel mid
-		new Vector3(0, 255, 0)		// Tunnel end
+		new Vector3(0, 0, 0)		// Tunnel end
 	};
 
 	private Curve3D curCurve;
